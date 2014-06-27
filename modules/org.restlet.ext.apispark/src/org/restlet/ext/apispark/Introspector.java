@@ -33,6 +33,8 @@
 
 package org.restlet.ext.apispark;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
@@ -79,6 +81,7 @@ import org.restlet.ext.apispark.internal.model.Representation;
 import org.restlet.ext.apispark.internal.model.Resource;
 import org.restlet.ext.apispark.internal.model.Response;
 import org.restlet.ext.apispark.internal.reflect.ReflectUtils;
+import org.restlet.ext.jackson.JacksonRepresentation;
 import org.restlet.resource.ClientResource;
 import org.restlet.resource.Directory;
 import org.restlet.resource.Finder;
@@ -143,42 +146,12 @@ public class Introspector {
             Resource resource = new Resource();
             resource.setDescription(toString(ri.getDocumentations()));
             resource.setName(ri.getIdentifier());
-            if (ri.getPath() != null) {
-                if (basePath != null) {
-                    if (basePath.endsWith("/")) {
-                        if (ri.getPath().startsWith("/")) {
-                            resource.setResourcePath(basePath
-                                    + ri.getPath().substring(1));
-                        } else {
-                            resource.setResourcePath(basePath + ri.getPath());
-                        }
-                    } else {
-                        if (ri.getPath().startsWith("/")) {
-                            resource.setResourcePath(basePath + ri.getPath());
-                        } else {
-                            resource.setResourcePath(basePath + "/"
-                                    + ri.getPath());
-                        }
-                    }
-                } else {
-                    if (ri.getPath().startsWith("/")) {
-                        resource.setResourcePath(ri.getPath());
-                    } else {
-                        resource.setResourcePath("/" + ri.getPath());
-                    }
-                }
-            }
-
-            if (!ri.getChildResources().isEmpty()) {
-                addResources(application, contract, ri.getChildResources(),
-                        resource.getResourcePath(), mapReps);
-            }
-            LOGGER.fine("Resource " + ri.getPath() + " added.");
-
-            if (ri.getMethods().isEmpty()) {
-                LOGGER.warning("Resource " + ri.getIdentifier()
-                        + " has no methods.");
-                continue;
+            if (ri.getPath() == null) {
+                resource.setResourcePath("/");
+            } else if (!ri.getPath().startsWith("/")) {
+                resource.setResourcePath("/" + ri.getPath());
+            } else {
+                resource.setResourcePath(ri.getPath());
             }
 
             resource.setPathVariables(new ArrayList<PathVariable>());
@@ -192,6 +165,18 @@ public class Introspector {
 
                     resource.getPathVariables().add(pathVariable);
                 }
+            }
+
+            if (!ri.getChildResources().isEmpty()) {
+                addResources(application, contract, ri.getChildResources(),
+                        resource.getResourcePath(), mapReps);
+            }
+            LOGGER.fine("Resource " + ri.getPath() + " added.");
+
+            if (ri.getMethods().isEmpty()) {
+                LOGGER.warning("Resource " + ri.getIdentifier()
+                        + " has no methods.");
+                continue;
             }
 
             resource.setOperations(new ArrayList<Operation>());
@@ -437,7 +422,7 @@ public class Introspector {
         applicationInfo.getResources().setBaseRef(baseRef);
         applicationInfo.getResources().setResources(
                 getResourceInfos(applicationInfo,
-                        getNextRouter(application.getInboundRoot())));
+                        getNextRouter(application.getInboundRoot()), "/"));
 
         //
 
@@ -643,7 +628,7 @@ public class Introspector {
             result = new ResourceInfo();
             result.setPath(path);
             result.setChildResources(getResourceInfos(applicationInfo,
-                    (Router) restlet));
+                    (Router) restlet, path));
         } else if (restlet instanceof Filter) {
             result = getResourceInfo(applicationInfo, (Filter) restlet, path);
         }
@@ -672,7 +657,9 @@ public class Introspector {
 
             // APISpark requires resource paths to be relative to parent path
             if (path.startsWith("/") && basePath.endsWith("/")) {
-                path = path.substring(1);
+                path = basePath + path.substring(1);
+            } else {
+                path = basePath + path;
             }
 
             result = getResourceInfo(applicationInfo, route.getNext(), path);
@@ -689,16 +676,18 @@ public class Introspector {
      *            The parent application.
      * @param router
      *            The router to document.
+     * @param path
+     *            The base path.
      * @return The list of ResourceInfo instances to complete.
      */
     private static List<ResourceInfo> getResourceInfos(
-            ApplicationInfo applicationInfo, Router router) {
+            ApplicationInfo applicationInfo, Router router, String path) {
         List<ResourceInfo> result = new ArrayList<ResourceInfo>();
 
         if (router != null) {
             for (Route route : router.getRoutes()) {
                 ResourceInfo resourceInfo = getResourceInfo(applicationInfo,
-                        route, "/");
+                        route, path);
 
                 if (resourceInfo != null) {
                     result.add(resourceInfo);
@@ -707,7 +696,7 @@ public class Introspector {
 
             if (router.getDefaultRoute() != null) {
                 ResourceInfo resourceInfo = getResourceInfo(applicationInfo,
-                        router.getDefaultRoute(), "/");
+                        router.getDefaultRoute(), path);
                 if (resourceInfo != null) {
                     result.add(resourceInfo);
                 }
@@ -827,6 +816,13 @@ public class Introspector {
 
     private static void sendDefinition(Definition definition,
             String definitionId, String ulogin, String upwd, String serviceUrl) {
+        try {
+            new JacksonRepresentation<Definition>(definition)
+                    .write(new FileOutputStream(new File(
+                            "/tmp/pourCyprien.json")));
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
         try {
             ClientResource cr = new ClientResource(serviceUrl);
             cr.setChallengeResponse(ChallengeScheme.HTTP_BASIC, ulogin, upwd);
@@ -1094,7 +1090,7 @@ public class Introspector {
                     }
                 }
             }
-            // Second phase, discover classes and loop while classes are unkown
+            // Second phase, discover classes and loop while classes are unknown
             while (!toBeAdded.isEmpty()) {
                 RepresentationInfo[] tab = new RepresentationInfo[toBeAdded
                         .size()];
