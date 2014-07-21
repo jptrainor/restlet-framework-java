@@ -43,8 +43,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;
 
-import org.restlet.ext.apispark.Introspector;
-
 /**
  * Handles Java reflection operations.
  * 
@@ -79,7 +77,7 @@ public class ReflectUtils {
         return field.getType();
     }
 
-    private static Class<?> getSimpleClass(java.lang.reflect.Type type) {
+    public static Class<?> getSimpleClass(java.lang.reflect.Type type) {
         if (type instanceof Class<?>) {
             Class<?> c = (Class<?>) type;
             if (c.isArray()) {
@@ -95,12 +93,12 @@ public class ReflectUtils {
             if (t.getActualTypeArguments().length == 1) {
                 return getSimpleClass(t.getActualTypeArguments()[0]);
             } else {
-                Logger.getLogger(Introspector.class.getName())
+                Logger.getLogger(ReflectUtils.class.getName())
                         .warning(
                                 "We don't support generic types with several arguments.");
             }
         }
-        return type.getClass();
+        return (type != null) ? type.getClass() : null;
     }
 
     /**
@@ -196,6 +194,28 @@ public class ReflectUtils {
         } else {
             sb.append(type.toString());
         }
+    }
+
+    /**
+     * Extracts the first segment of a path. Will retrieve "/pet" from
+     * "/pet/{petId}" for example.
+     * 
+     * @param path
+     *            The path of which the segment will be extracted.
+     * @return The first segment of the given path.
+     */
+    public static String getFirstSegment(String path) {
+        String segment = null;
+        if (path != null) {
+            int start = (path.startsWith("/")) ? 1 : 0;
+            int index = path.indexOf("/", start);
+            if (index != -1) {
+                segment = "/" + path.substring(start, index);
+            } else {
+                segment = "/" + path.substring(start);
+            }
+        }
+        return segment;
     }
 
 }

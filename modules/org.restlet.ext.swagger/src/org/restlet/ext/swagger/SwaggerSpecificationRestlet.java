@@ -38,11 +38,19 @@ import org.restlet.Context;
 import org.restlet.Request;
 import org.restlet.Response;
 import org.restlet.Restlet;
+import org.restlet.data.Header;
 import org.restlet.data.Method;
 import org.restlet.data.Status;
+import org.restlet.engine.header.HeaderConstants;
 import org.restlet.ext.jackson.JacksonRepresentation;
+import org.restlet.ext.swagger.internal.SwaggerConverter;
+import org.restlet.ext.swagger.internal.model.Definition;
+import org.restlet.ext.swagger.internal.model.swagger.ApiDeclaration;
+import org.restlet.ext.swagger.internal.model.swagger.ResourceListing;
+import org.restlet.ext.swagger.internal.reflect.Introspector;
+import org.restlet.representation.Representation;
+import org.restlet.util.Series;
 
-import com.wordnik.swagger.core.Documentation;
 import com.wordnik.swagger.core.SwaggerSpec;
 
 /**
@@ -63,17 +71,20 @@ import com.wordnik.swagger.core.SwaggerSpec;
  */
 public class SwaggerSpecificationRestlet extends Restlet {
 
-    /** The Application to describe. */
-    Application application;
-
     /** The root Restlet to describe. */
     Restlet apiInboundRoot;
 
     /** The version of the API. */
     private String apiVersion;
 
+    /** The Application to describe. */
+    Application application;
+
     /** The base path of the API. */
     private String basePath;
+
+    /** The RWADef of the API. */
+    private Definition definition;
 
     /** The root Restlet to describe. */
     private String jsonPath;
@@ -98,19 +109,20 @@ public class SwaggerSpecificationRestlet extends Restlet {
      */
     public SwaggerSpecificationRestlet(Context context) {
         super(context);
-        swaggerVersion = SwaggerSpec.version();
+        swaggerVersion = "1.2";
     }
 
     /**
      * Returns the Swagger documentation of a given resource, also known as
      * "API Declaration" in Swagger vocabulary.
      * 
-     * @param resourcePath
-     *            The path of the resource to describe.
-     * @return The Swagger documentation of a given resource
+     * @param category
+     *            The category of the resource to describe.
+     * @return The representation of the API declaration.
      */
-    public Documentation getApiDeclaration(String resourcePath) {
-        return null;
+    public Representation getApiDeclaration(String category) {
+        return new JacksonRepresentation<ApiDeclaration>(
+                SwaggerConverter.getApiDeclaration(category, getDefinition()));
     }
 
     /**
@@ -147,6 +159,29 @@ public class SwaggerSpecificationRestlet extends Restlet {
     }
 
     /**
+     * Returns the application's definition.
+     * 
+     * @return The application's definition.
+     */
+    private synchronized Definition getDefinition() {
+        if (definition == null) {
+            synchronized (SwaggerSpecificationRestlet.class) {
+                Introspector i = new Introspector(application, false);
+                definition = i.getDefinition();
+                // This data seems necessary for Swagger codegen.
+                if (definition.getVersion() == null) {
+                    definition.setVersion("1.0");
+                }
+                if (definition.getEndpoint() == null) {
+                    definition.setEndpoint("http://localhost:9000/v1");
+                }
+            }
+        }
+
+        return definition;
+    }
+
+    /**
      * Returns the base path of the API's resource.
      * 
      * @return The base path of the API's resource.
@@ -162,8 +197,9 @@ public class SwaggerSpecificationRestlet extends Restlet {
      * @return The representation of the whole resource listing of the
      *         Application.
      */
-    public Documentation getResourceListing() {
-        return null;
+    public Representation getResourceListing() {
+        return new JacksonRepresentation<ResourceListing>(
+                SwaggerConverter.getResourcelisting(getDefinition()));
     }
 
     /**
@@ -175,27 +211,36 @@ public class SwaggerSpecificationRestlet extends Restlet {
         return swaggerVersion;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void handle(Request request, Response response) {
         super.handle(request, response);
+
+        // CORS support for Swagger-UI
+        Series<Header> headers = new Series<Header>(Header.class);
+        headers.set(
+                "Access-Control-Expose-Headers",
+                "Authorization, Link, X-RateLimit-Limit, X-RateLimit-Remaining, X-OAuth-Scopes, X-Accepted-OAuth-Scopes");
+        headers.set("Access-Control-Allow-Headers", "Authorization,");
+        headers.set("Access-Control-Allow-Credentials", "true");
+        headers.set("Access-Control-Allow-Methods", "GET");
+        Series<Header> reqHeaders = (Series<Header>) request.getAttributes()
+                .get(HeaderConstants.ATTRIBUTE_HEADERS);
+        String requestOrigin = reqHeaders.getFirstValue("Origin", "*");
+        headers.set("Access-Control-Allow-Origin", requestOrigin);
+        response.getAttributes()
+                .put(HeaderConstants.ATTRIBUTE_HEADERS, headers);
 
         if (!Method.GET.equals(request.getMethod())) {
             response.setStatus(Status.CLIENT_ERROR_METHOD_NOT_ALLOWED);
         }
 
         Object resource = request.getAttributes().get("resource");
-        Documentation documentation = null;
-        if (resource instanceof String) {
-            documentation = getApiDeclaration((String) resource);
-        } else {
-            documentation = getResourceListing();
-        }
 
-        if (response.getEntity() != null) {
-            response.setEntity(new JacksonRepresentation<Documentation>(
-                    documentation));
+        if (resource instanceof String) {
+            response.setEntity(getApiDeclaration((String) resource));
         } else {
-            response.setStatus(Status.CLIENT_ERROR_NOT_FOUND);
+            response.setEntity(getResourceListing());
         }
     }
 

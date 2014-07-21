@@ -1,5 +1,6 @@
 package org.restlet.ext.apispark.internal.model.swagger;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -39,6 +40,7 @@ public class ResourceOperationParameterDeclaration {
     private String defaultValue;
 
     @JsonProperty("enum")
+    @JsonInclude(Include.NON_EMPTY)
     private List<String> enum_;
 
     private boolean allowMultiple;
@@ -116,6 +118,9 @@ public class ResourceOperationParameterDeclaration {
     }
 
     public List<String> getEnum_() {
+        if (enum_ == null) {
+            enum_ = new ArrayList<String>();
+        }
         return enum_;
     }
 
