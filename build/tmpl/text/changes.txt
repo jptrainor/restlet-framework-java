@@ -5,7 +5,9 @@ Changes log
 
 - @version-full@ (@release-date@)
     - New features
-      - 
+      - Added Firewall feature.
+        Contributed by Guillaume Blondeau.
+      - Added RAML support in dedicated extension.
 
     - Enhancements
       - Added targetRef support to templates, allow reference variables to 
@@ -37,6 +39,7 @@ Changes log
         document does not declare a schema attribute (issue #932).
       - Uncaught exceptions may cause LogFilter to fail, with dire consequences.
         Issue #931. Reported and contributed by Tal Liron.
+      - The Restlet internal connector only serves from one thread. #937
 
 - 2.3 Milestone 2 (05/06/2014)
     - New features

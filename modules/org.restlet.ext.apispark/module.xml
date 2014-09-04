@@ -1,4 +1,4 @@
-<module id="apispark" includes="jse,osgi" type="standard" package="org.restlet.ext.apispark">
+<module id="apispark" excludes="android,gwt" type="standard" package="org.restlet.ext.apispark">
    <name>Restlet Extension - APISpark</name>
    <description>Integration with APISpark cloud platform, by Restlet.</description>
 	<distributions>
@@ -8,6 +8,7 @@
 	</distributions>
 	
    <dependencies>
+      <dependency type="library" id="guava" />
       <dependency type="library" id="jaxrs" />
       <dependency type="module" id="core" />
       <dependency type="module" id="jackson" />
