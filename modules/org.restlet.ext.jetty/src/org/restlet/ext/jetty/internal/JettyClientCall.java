@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -44,7 +35,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
 import org.eclipse.jetty.client.HttpRequest;
-import org.eclipse.jetty.client.HttpResponse;
 import org.eclipse.jetty.client.util.InputStreamContentProvider;
 import org.eclipse.jetty.client.util.InputStreamResponseListener;
 import org.eclipse.jetty.http.HttpField;
@@ -68,6 +58,31 @@ import org.restlet.util.Series;
  * @author Tal Liron
  */
 public class JettyClientCall extends ClientCall {
+
+    /**
+     * The associated HTTP client.
+     */
+    private final HttpClientHelper clientHelper;
+
+    /**
+     * The wrapped HTTP request.
+     */
+    private final HttpRequest httpRequest;
+
+    /**
+     * The wrapped HTTP response.
+     */
+    private volatile org.eclipse.jetty.client.api.Response httpResponse;
+
+    /**
+     * The wrapped input stream response listener.
+     */
+    private volatile InputStreamResponseListener inputStreamResponseListener;
+
+    /**
+     * Indicates if the response headers were added.
+     */
+    private volatile boolean responseHeadersAdded;
 
     /**
      * Constructor.
@@ -112,7 +127,7 @@ public class JettyClientCall extends ClientCall {
      * 
      * @return The HTTP response.
      */
-    public HttpResponse getHttpResponse() {
+    public org.eclipse.jetty.client.api.Response getHttpResponse() {
         return this.httpResponse;
     }
 
@@ -132,7 +147,7 @@ public class JettyClientCall extends ClientCall {
      */
     @Override
     public String getReasonPhrase() {
-        final HttpResponse httpResponse = getHttpResponse();
+        final org.eclipse.jetty.client.api.Response httpResponse = getHttpResponse();
         return httpResponse == null ? null : httpResponse.getReason();
     }
 
@@ -159,6 +174,28 @@ public class JettyClientCall extends ClientCall {
     }
 
     /**
+     * Returns the response entity if available. Note that no metadata is
+     * associated by default, you have to manually set them from your headers.
+     *
+     * As jetty client decode the input stream on the fly in
+     * {@link org.eclipse.jetty.client.HttpReceiver#responseContent(org.eclipse.jetty.client.HttpExchange, java.nio.ByteBuffer, org.eclipse.jetty.util.Callback)}
+     * we have to clear the {@link org.restlet.representation.Representation#getEncodings()}
+     * to avoid decoding the input stream another time.
+
+     * @param response
+     *            the Response to get the entity from
+     * @return The response entity if available.
+     */
+    @Override
+    public Representation getResponseEntity(Response response) {
+        Representation responseEntity = super.getResponseEntity(response);
+        if (responseEntity != null && !responseEntity.getEncodings().isEmpty()) {
+            responseEntity.getEncodings().clear();
+        }
+        return responseEntity;
+    }
+
+    /**
      * Returns the modifiable list of response headers.
      * 
      * @return The modifiable list of response headers.
@@ -168,7 +205,7 @@ public class JettyClientCall extends ClientCall {
         final Series<Header> result = super.getResponseHeaders();
 
         if (!this.responseHeadersAdded) {
-            final HttpResponse httpResponse = getHttpResponse();
+            final org.eclipse.jetty.client.api.Response httpResponse = getHttpResponse();
             if (httpResponse != null) {
                 final HttpFields headers = httpResponse.getHeaders();
                 if (headers != null) {
@@ -201,7 +238,7 @@ public class JettyClientCall extends ClientCall {
      */
     @Override
     public int getStatusCode() {
-        final HttpResponse httpResponse = getHttpResponse();
+        final org.eclipse.jetty.client.api.Response httpResponse = getHttpResponse();
         return httpResponse == null ? null : httpResponse.getStatus();
     }
 
@@ -221,7 +258,7 @@ public class JettyClientCall extends ClientCall {
             final Representation entity = request.getEntity();
 
             // Request entity
-            if (entity != null)
+            if (entity != null && entity.isAvailable())
                 this.httpRequest.content(new InputStreamContentProvider(entity
                         .getStream()));
 
@@ -235,11 +272,10 @@ public class JettyClientCall extends ClientCall {
             // Ensure that the connection is active
             this.inputStreamResponseListener = new InputStreamResponseListener();
             this.httpRequest.send(this.inputStreamResponseListener);
-            long timeout = 5000;
-            this.httpResponse = (HttpResponse) this.inputStreamResponseListener
-                    .get(timeout, TimeUnit.MILLISECONDS);
+            this.httpResponse = this.inputStreamResponseListener
+                    .get(clientHelper.getIdleTimeout(), TimeUnit.MILLISECONDS);
 
-            result = new Status(getStatusCode(), null, getReasonPhrase(), null);
+            result = new Status(getStatusCode(), getReasonPhrase());
         } catch (IOException e) {
             this.clientHelper.getLogger().log(Level.WARNING,
                     "An error occurred while reading the request entity.", e);
@@ -286,29 +322,4 @@ public class JettyClientCall extends ClientCall {
             // Transmit to the callback, if any
             callback.handle(request, response);
     }
-
-    /**
-     * The associated HTTP client.
-     */
-    private final HttpClientHelper clientHelper;
-
-    /**
-     * The wrapped HTTP request.
-     */
-    private final HttpRequest httpRequest;
-
-    /**
-     * The wrapped input stream response listener.
-     */
-    private volatile InputStreamResponseListener inputStreamResponseListener;
-
-    /**
-     * The wrapped HTTP response.
-     */
-    private volatile HttpResponse httpResponse;
-
-    /**
-     * Indicates if the response headers were added.
-     */
-    private volatile boolean responseHeadersAdded;
 }

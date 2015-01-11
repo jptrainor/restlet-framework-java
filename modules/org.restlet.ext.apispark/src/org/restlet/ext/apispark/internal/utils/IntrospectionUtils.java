@@ -1,18 +1,55 @@
-package org.restlet.ext.apispark.internal.utils;
+/**
+ * Copyright 2005-2014 Restlet
+ * 
+ * The contents of this file are subject to the terms of one of the following
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
+ * 
+ * You can obtain a copy of the Apache 2.0 license at
+ * http://www.opensource.org/licenses/apache-2.0
+ * 
+ * You can obtain a copy of the EPL 1.0 license at
+ * http://www.opensource.org/licenses/eclipse-1.0
+ * 
+ * See the Licenses for the specific language governing permissions and
+ * limitations under the Licenses.
+ * 
+ * Alternatively, you can obtain a royalty free commercial license with less
+ * limitations, transferable or non-transferable, directly at
+ * http://restlet.com/products/restlet-framework
+ * 
+ * Restlet is a registered trademark of Restlet S.A.S.
+ */
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.logging.Logger;
+package org.restlet.ext.apispark.internal.utils;
 
 import org.restlet.data.ChallengeScheme;
 import org.restlet.data.MediaType;
-import org.restlet.ext.apispark.model.Definition;
-import org.restlet.ext.apispark.model.Representation;
-import org.restlet.ext.apispark.model.Resource;
+import org.restlet.ext.apispark.internal.introspection.IntrospectionHelper;
+import org.restlet.ext.apispark.internal.model.Definition;
+import org.restlet.ext.apispark.internal.model.Operation;
+import org.restlet.ext.apispark.internal.model.Representation;
+import org.restlet.ext.apispark.internal.model.Resource;
+import org.restlet.ext.apispark.internal.model.Response;
+import org.restlet.ext.apispark.internal.model.Section;
 import org.restlet.resource.ClientResource;
 import org.restlet.resource.ResourceException;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.ServiceLoader;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Tools library.
@@ -21,8 +58,25 @@ import org.restlet.resource.ResourceException;
  */
 public class IntrospectionUtils {
 
+    public static List<String> STRATEGIES = Arrays.asList("update", "replace");
+
     /**
-     * Indicates if the given velue is either null or empty.
+     * Discover introspection helpers.
+     *
+     * @return the discovered introspection helpers.
+     */
+    public static List<IntrospectionHelper> getIntrospectionHelpers() {
+        List<IntrospectionHelper> introspectionHelpers = new ArrayList<>();
+
+        ServiceLoader<IntrospectionHelper> ihLoader = ServiceLoader
+                .load(IntrospectionHelper.class);
+        for (IntrospectionHelper helper : ihLoader) {
+            introspectionHelpers.add(helper);
+        }
+        return introspectionHelpers;
+    }
+    /**
+     * Indicates if the given value is either null or empty.
      * 
      * @param value
      *            The value.
@@ -32,110 +86,101 @@ public class IntrospectionUtils {
         return value == null || value.isEmpty();
     }
 
-    /**
-     * Displays an option and its description to the console.
-     * 
-     * @param o
-     *            The console stream.
-     * @param option
-     *            The option.
-     * @param strings
-     *            The option's description.
-     */
-    public static void printOption(PrintStream o, String option,
-            String... strings) {
-        printSentence(o, 7, option);
-        printSentence(o, 14, strings);
-    }
+    public static void sendDefinition(Definition definition,
+                                      String ulogin, String upwd, String serviceUrl,
+                                      String cellType, String cellId, String cellVersion,
+                                      boolean createNewCell, boolean createNewVersion,
+                                      boolean updateCell, String updateStrategy,
+                                      Logger logger) {
 
-    /**
-     * Formats a list of Strings by lines of 80 characters maximul, and displays
-     * it to the console.
-     * 
-     * @param o
-     *            The console.
-     * @param shift
-     *            The number of characters to shift the list of strings on the
-     *            left.
-     * @param strings
-     *            The list of Strings to display.
-     */
-    public static void printSentence(PrintStream o, int shift,
-            String... strings) {
-        int blockLength = 80 - shift - 1;
-        String tab = "";
-        for (int i = 0; i < shift; i++) {
-            tab = tab.concat(" ");
-        }
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < strings.length; i++) {
-            if (i > 0) {
-                sb.append(" ");
-            }
-            sb.append(strings[i]);
-        }
-        String sentence = sb.toString();
-        // Cut in slices
-        int index = 0;
-        while (index < (sentence.length() - 1)) {
-            o.print(tab);
-            int length = Math.min(index + blockLength, sentence.length() - 1);
-            if ((length - index) < blockLength) {
-                o.println(sentence.substring(index));
-                index = length + 1;
-            } else if (sentence.charAt(length) == ' ') {
-                o.println(sentence.substring(index, length));
-                index = length + 1;
+        String url = serviceUrl + "api/";
+
+        sortDefinition(definition);
+
+        ClientResource cr = new ClientResource(url);
+        try {
+            cr.setChallengeResponse(ChallengeScheme.HTTP_BASIC, ulogin, upwd);
+            cr.addQueryParameter("type", "rwadef");
+
+            if (createNewCell) {
+                cr.addQueryParameter("cellType", cellType);
+                cr.addSegment("apis").addSegment("");
+                logger.info("Create a new cell of type " + cellType);
+                cr.post(definition, MediaType.APPLICATION_JSON);
+            } else if (createNewVersion) {
+                cr.addSegment("apis").addSegment(cellId)
+                        .addSegment("versions").addSegment("");
+                logger.info("Create a new version of the cell "
+                        + cellId);
+                cr.post(definition, MediaType.APPLICATION_JSON);
+            } else if (updateCell) {
+                cr.addSegment("apis").addSegment(cellId)
+                        .addSegment("versions").addSegment(cellVersion);
+                logger.info("Update version " + cellVersion + " of cell "
+                        + cellId + " with strategy " + updateStrategy);
+                cr.addQueryParameter("strategy", updateStrategy);
+                cr.put(definition, MediaType.APPLICATION_JSON);
             } else {
-                length = sentence.substring(index, length - 1).lastIndexOf(' ');
-                if (length != -1) {
-                    o.println(sentence.substring(index, index + length));
-                    index += length + 1;
-                } else {
-                    length = sentence.substring(index).indexOf(' ');
-                    if (length != -1) {
-                        o.println(sentence.substring(index, index + length));
-                        index += length + 1;
-                    } else {
-                        o.println(sentence.substring(index));
-                        index = sentence.length();
-                    }
+                throw new RuntimeException("No action error");
+            }
+
+            logger.fine("Call success to "+ cr.getRequest());
+
+            if (!cr.getResponse().getStatus().isSuccess()) {
+                throw new RuntimeException("Request failed with following status: " + cr.getResponse().getStatus());
+            }
+            // This is not printed by a logger which may be muted.
+            if (cr.getResponseEntity() != null
+                    && cr.getResponseEntity().isAvailable()) {
+                try {
+                    cr.getResponseEntity().write(System.out);
+                    System.out.println();
+                } catch (IOException e) {
+                    // [PENDING] analysis
+                    logger.log(Level.WARNING, "Request successfully achieved by the server, but it's response cannot be printed", e);
                 }
             }
+
+            if (cr.getLocationRef() != null) {
+                System.out
+                        .println("Your Web API documentation is accessible at this URL: "
+                                + cr.getLocationRef());
+            }
+        } catch (ResourceException e) {
+            logger.fine("Error during call to "+ cr.getRequest());
+            if (e.getStatus().isConnectorError()) {
+                throw new RuntimeException("APISpark communication error. Please check the root cause below.", e);
+            } else if (e.getStatus().isClientError()) {
+                if (e.getStatus().getCode() == 403) {
+                    throw new RuntimeException("APISpark Authentication fails. Check that you provide valid credentials.", e);
+                } else if (e.getStatus().getCode() == 404) {
+                    throw new RuntimeException("Resource not found. Check that you provide valid cell id and cell version.", e);
+                } else {
+                    throw new RuntimeException("APISpark returns client error. Please check the root cause below.", e);
+                }
+            } else {
+                throw new RuntimeException("APISpark server encounters some issues, please try later", e);
+            }
         }
     }
 
     /**
-     * Displays a list of String to the console.
+     * Sorts the sections, representations and resources alphabetically in the
+     * given RWADef definition
      * 
-     * @param o
-     *            The console stream.
-     * @param strings
-     *            The list of Strings to display.
+     * @param definition
+     *            The RWADef definition
      */
-    public static void printSentence(PrintStream o, String... strings) {
-        printSentence(o, 7, strings);
-    }
+    public static void sortDefinition(Definition definition) {
+        Collections.sort(definition.getContract().getSections(),
+                new Comparator<Section>() {
 
-    /**
-     * Displays the command line.
-     * 
-     * @param o
-     *            The console stream.
-     * @param clazz
-     *            The main class.
-     * @param command
-     *            The command line.
-     */
-    public static void printSynopsis(PrintStream o, Class<?> clazz,
-            String command) {
-        printSentence(o, 7, clazz.getName(), command);
-    }
+                    @Override
+                    public int compare(Section o1, Section o2) {
+                        return o1.getName().compareTo(o2.getName());
+                    }
 
-    public static void sendDefinition(Definition definition,
-            String definitionId, String ulogin, String upwd, String serviceUrl,
-            Logger LOGGER) {
-
+                });
         Collections.sort(definition.getContract().getRepresentations(),
                 new Comparator<Representation>() {
 
@@ -155,52 +200,57 @@ public class IntrospectionUtils {
                     }
 
                 });
-        try {
-            ClientResource cr = new ClientResource(serviceUrl);
-            cr.setChallengeResponse(ChallengeScheme.HTTP_BASIC, ulogin, upwd);
-
-            if (definitionId == null) {
-                cr.addSegment("definitions");
-                LOGGER.info("Create a new documentation");
-                cr.post(definition, MediaType.APPLICATION_JSON);
-            } else {
-                cr.addSegment("apis").addSegment(definitionId)
-                        .addSegment("definitions");
-                LOGGER.info("Update the documentation of "
-                        + cr.getReference().toString());
-                cr.put(definition, MediaType.APPLICATION_JSON);
-            }
-
-            LOGGER.fine("Display result");
-            System.out.println("Process successfully achieved.");
-            // This is not printed by a logger which may be muted.
-            if (cr.getResponseEntity() != null
-                    && cr.getResponseEntity().isAvailable()) {
-                try {
-                    cr.getResponseEntity().write(System.out);
-                    System.out.println();
-                } catch (IOException e) {
-                    // [PENDING] analysis
-                    LOGGER.warning("Request successfully achieved by the server, but it's response cannot be printed");
-                }
-            }
-            if (cr.getLocationRef() != null) {
-                System.out
-                        .println("Your Web API documentation is accessible at this URL: "
-                                + cr.getLocationRef());
-            }
-        } catch (ResourceException e) {
-            // TODO Should we detail by status?
-            if (e.getStatus().isConnectorError()) {
-                LOGGER.severe("Cannot reach the remote service, could you check your network connection?");
-                LOGGER.severe("Could you check that the following service is up? "
-                        + serviceUrl);
-            } else if (e.getStatus().isClientError()) {
-                LOGGER.severe("Check that you provide valid credentials, or valid service url.");
-            } else if (e.getStatus().isServerError()) {
-                LOGGER.severe("The server side encounters some issues, please try later.");
-            }
-        }
     }
 
+    public static void updateRepresentationsSectionsFromResources(
+            Definition definition) {
+        Map<Resource, Collection<String>> resourcesLinks = new HashMap<Resource, Collection<String>>();
+        Map<Representation, Collection<String>> representationsSections = new HashMap<Representation, Collection<String>>();
+        for (Resource resource : definition.getContract().getResources()) {
+            Collection<String> representations = new HashSet<String>();
+            for (Operation operation : resource.getOperations()) {
+                if (operation.getInputPayLoad() != null
+                        && operation.getInputPayLoad().getType() != null) {
+                    representations.add(operation.getInputPayLoad().getType());
+                }
+                for (Response response : operation.getResponses()) {
+                    if (response.getOutputPayLoad() != null
+                            && response.getOutputPayLoad().getType() != null) {
+                        representations.add(response.getOutputPayLoad()
+                                .getType());
+                    }
+                }
+            }
+            resourcesLinks.put(resource, representations);
+        }
+
+        for (Entry<Resource, Collection<String>> entry : resourcesLinks
+                .entrySet()) {
+            for (String representationIdentifier : entry.getValue()) {
+                Representation representation = definition.getContract()
+                        .getRepresentation(representationIdentifier);
+
+                // primitives types are not present in representations list
+                if (representation != null) {
+                    if (representationsSections.get(representation) != null) {
+                        representationsSections.get(representation).addAll(
+                                entry.getKey().getSections());
+                    } else {
+                        Collection<String> representationSections = new HashSet<String>();
+                        representationSections.addAll(representation
+                                .getSections());
+                        representationSections.addAll(entry.getKey()
+                                .getSections());
+                        representationsSections.put(representation,
+                                representationSections);
+                    }
+                }
+            }
+        }
+
+        for (Entry<Representation, Collection<String>> entry : representationsSections
+                .entrySet()) {
+            entry.getKey().setSections(new ArrayList<String>(entry.getValue()));
+        }
+    }
 }

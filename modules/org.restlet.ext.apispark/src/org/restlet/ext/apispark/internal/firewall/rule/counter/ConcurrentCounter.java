@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -33,6 +24,8 @@
 
 package org.restlet.ext.apispark.internal.firewall.rule.counter;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.restlet.ext.apispark.internal.firewall.rule.CounterResult;
 
 /**
@@ -42,16 +35,23 @@ import org.restlet.ext.apispark.internal.firewall.rule.CounterResult;
  */
 public class ConcurrentCounter extends Counter {
 
-    @Override
-    public synchronized void decrement() {
-        value--;
+    /** The counter value. */
+    protected final AtomicInteger counter;
+
+    public ConcurrentCounter() {
+        this.counter = new AtomicInteger();
     }
 
     @Override
-    public synchronized CounterResult increment() {
-        value++;
+    public void decrement() {
+        counter.decrementAndGet();
+    }
+
+    @Override
+    public CounterResult increment() {
+        int count = counter.incrementAndGet();
         CounterResult counterResult = new CounterResult();
-        counterResult.setConsumed(value);
+        counterResult.setConsumed(count);
         return counterResult;
     }
 

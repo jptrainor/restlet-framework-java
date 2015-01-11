@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -49,6 +40,7 @@ import org.restlet.test.RestletTestCase;
  * @author Kevin Conaway
  * @author Jerome Louvel
  */
+@SuppressWarnings("unused")
 public abstract class BaseConnectorsTestCase extends RestletTestCase {
 
     private Component component;
@@ -83,12 +75,17 @@ public abstract class BaseConnectorsTestCase extends RestletTestCase {
         nre.registerDefaultAuthentications();
         nre.registerDefaultConverters();
 
-        String uri = start();
+        String host = start();
+        String uri = getCallUri(host);
         try {
             call(uri);
         } finally {
             stop();
         }
+    }
+
+    protected String getCallUri(String host) {
+        return host + "/test";
     }
 
     protected String start() throws Exception {
@@ -100,7 +97,7 @@ public abstract class BaseConnectorsTestCase extends RestletTestCase {
         this.component.getDefaultHost().attach(application);
         this.component.start();
 
-        return "http://localhost:" + server.getEphemeralPort() + "/test";
+        return "http://localhost:" + server.getEphemeralPort();
     }
 
     protected void stop() throws Exception {

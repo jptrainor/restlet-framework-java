@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -46,16 +37,23 @@ import org.restlet.ext.apispark.internal.firewall.rule.policy.CountingPolicy;
 import org.restlet.routing.Filter;
 
 /**
- * A {@link FirewallCounterRule} associates a {@link CountingPolicy} to identify
- * requests through a custom policy, then a {@link Counter} which defines a
- * count to a request, and {@link ThresholdHandler} which defines a limit and a
- * custom action when the limit is reached.
+ * A {@link FirewallCounterRule} associates:
+ * <ul>
+ * <li>a {@link CountingPolicy} that identifies requests through a custom
+ * policy,</li>
+ * <li>a {@link Counter} that extracts a counted value from a request,</li>
+ * <li>and a {@link ThresholdHandler} that defines a limit and a custom action
+ * when the limit is reached.</li>/
+ * <ul>
  * 
  * @author Guillaume Blondeau
  */
 public abstract class FirewallCounterRule extends FirewallRule {
-    /** Indicates if an unknown counted value should be blocked by default. */
-    private boolean blockingUnknownCountedValue;
+    /**
+     * Indicates if an unknown counted value should be blocked by default.
+     * Default is true
+     */
+    private boolean blockingUnknownCountedValue = true;
 
     /** The associated policy. */
     private CountingPolicy countingPolicy;
@@ -110,8 +108,8 @@ public abstract class FirewallCounterRule extends FirewallRule {
         String countedValue = this.countingPolicy.getCountedValue(request);
 
         if (countedValue == null) {
-            return isBlockingUnknownCountedValue() ? Filter.CONTINUE
-                    : Filter.SKIP;
+            return isBlockingUnknownCountedValue() ? Filter.SKIP
+                    : Filter.CONTINUE;
         }
 
         CounterResult counterResult = incrementCounter(countedValue);
@@ -133,9 +131,9 @@ public abstract class FirewallCounterRule extends FirewallRule {
     }
 
     /**
-     * Method called after processing. Determine the countedValue (value
-     * returned by the attached {@link CountingPolicy}), decrement the related
-     * {@link Counter} and calls attached {@link ThresholdHandler}.
+     * Method called after processing. Determines the countedValue (value
+     * returned by the attached {@link CountingPolicy}), decrements the related
+     * {@link Counter} and calls the attached {@link ThresholdHandler}.
      * 
      * @param request
      *            The request to handle.
@@ -186,7 +184,9 @@ public abstract class FirewallCounterRule extends FirewallRule {
 
     /**
      * Sets the counting policy.
-     * @param countingPolicy the counting policy.
+     * 
+     * @param countingPolicy
+     *            the counting policy.
      */
     public void setCountingPolicy(CountingPolicy countingPolicy) {
         this.countingPolicy = countingPolicy;

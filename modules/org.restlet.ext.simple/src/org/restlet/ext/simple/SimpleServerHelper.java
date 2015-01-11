@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -67,8 +58,16 @@ import org.simpleframework.transport.connect.Connection;
  * 
  * @author Lars Heuer
  * @author Jerome Louvel
+ * @deprecated Will be removed to favor lower-level network extensions allowing
+ *             more control at the Restlet API level.
  */
+@Deprecated
 public abstract class SimpleServerHelper extends HttpServerHelper {
+    /**
+     * Socket this server is listening to.
+     */
+    private volatile InetSocketAddress address;
+
     /**
      * Indicates if this service is acting in HTTP or HTTPS mode.
      */
@@ -85,11 +84,6 @@ public abstract class SimpleServerHelper extends HttpServerHelper {
     private volatile ContainerServer containerServer;
 
     /**
-     * Socket this server is listening to.
-     */
-    private volatile InetSocketAddress address;
-
-    /**
      * Constructor.
      * 
      * @param server
@@ -100,12 +94,30 @@ public abstract class SimpleServerHelper extends HttpServerHelper {
     }
 
     /**
+     * Returns the socket address this server is listening to.
+     * 
+     * @return The socket address this server is listening to.
+     */
+    protected InetSocketAddress getAddress() {
+        return this.address;
+    }
+
+    /**
      * Returns the Simple connection.
      * 
      * @return The Simple connection.
      */
     protected Connection getConnection() {
         return this.connection;
+    }
+
+    /**
+     * Returns the Simple container server.
+     * 
+     * @return The Simple container server.
+     */
+    protected ContainerServer getContainerServer() {
+        return this.containerServer;
     }
 
     /**
@@ -119,30 +131,22 @@ public abstract class SimpleServerHelper extends HttpServerHelper {
     }
 
     /**
-     * Returns the Simple container server.
-     * 
-     * @return The Simple container server.
-     */
-    protected ContainerServer getContainerServer() {
-        return this.containerServer;
-    }
-
-    /**
-     * Returns the socket address this server is listening to.
-     * 
-     * @return The socket address this server is listening to.
-     */
-    protected InetSocketAddress getAddress() {
-        return this.address;
-    }
-
-    /**
      * Indicates if this service is acting in HTTP or HTTPS mode.
      * 
      * @return True if this service is acting in HTTP or HTTPS mode.
      */
     public boolean isConfidential() {
         return this.confidential;
+    }
+
+    /**
+     * Sets the socket address this server is listening to.
+     * 
+     * @param address
+     *            The socket address this server is listening to.
+     */
+    protected void setAddress(InetSocketAddress address) {
+        this.address = address;
     }
 
     /**
@@ -173,16 +177,6 @@ public abstract class SimpleServerHelper extends HttpServerHelper {
      */
     protected void setContainerServer(ContainerServer container) {
         this.containerServer = container;
-    }
-
-    /**
-     * Sets the socket address this server is listening to.
-     * 
-     * @param address
-     *            The socket address this server is listening to.
-     */
-    protected void setAddress(InetSocketAddress address) {
-        this.address = address;
     }
 
     @Override

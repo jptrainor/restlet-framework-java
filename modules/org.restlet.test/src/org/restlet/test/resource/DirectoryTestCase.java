@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -97,12 +88,23 @@ public class DirectoryTestCase extends RestletTestCase {
             final String rootIdentifier = LocalReference.createFileReference(
                     testDirectory).getIdentifier();
 
+            resetDirectoryToDefault();
+
             if (rootIdentifier.endsWith("/")) {
                 this.directory.setRootRef(new Reference(rootIdentifier));
             } else {
                 this.directory.setRootRef(new Reference(rootIdentifier + "/"));
             }
         }
+
+        private void resetDirectoryToDefault() {
+            this.directory.setDeeplyAccessible(true);
+            this.directory.setIndexName("index");
+            this.directory.setListingAllowed(false);
+            this.directory.setModifiable(false);
+            this.directory.setNegotiatingContent(true);
+        }
+
     }
 
     public static void main(String[] args) throws Exception {
@@ -140,7 +142,7 @@ public class DirectoryTestCase extends RestletTestCase {
     /**
      * Helper for the test
      * 
-     * @param directory
+     * @param application
      * @param baseRef
      * @param resourceRef
      * @param method
@@ -157,7 +159,7 @@ public class DirectoryTestCase extends RestletTestCase {
     /**
      * Helper for the test
      * 
-     * @param directory
+     * @param application
      * @param baseRef
      * @param resourceRef
      * @param method
@@ -204,6 +206,14 @@ public class DirectoryTestCase extends RestletTestCase {
         // Now, let's start the component!
         clientComponent.start();
 
+        doTests(application);
+
+        // Now, let's stop the component!
+        clientComponent.stop();
+
+    }
+
+    public void doTests(MyApplication application) throws Exception {
         // Allow extensions tunneling
         application.getTunnelService().setExtensionsTunnel(true);
         IoUtils.delete(this.testDir, true);
@@ -257,8 +267,10 @@ public class DirectoryTestCase extends RestletTestCase {
         // Test the access to the sub directories.
         testDirectoryDeeplyAccessible(application, application.getDirectory());
 
-        // Now, let's stop the component!
-        clientComponent.stop();
+        IoUtils.delete(this.testDir, true);
+
+        // Test the access to the sub directories.
+        testParentDirectoryInaccessible(application, application.getDirectory());
     }
 
     /**
@@ -276,6 +288,7 @@ public class DirectoryTestCase extends RestletTestCase {
                 .createTempFile("test", ".txt", testDirectory);
 
         directory.setDeeplyAccessible(true);
+        directory.setListingAllowed(true);
         Response response = handle(application, this.webSiteURL,
                 this.webSiteURL.concat("dir/subDir/"), Method.GET, null,
                 "deep access 1");
@@ -298,6 +311,103 @@ public class DirectoryTestCase extends RestletTestCase {
                         .concat(testFile.getName()), Method.GET, null,
                 "deep access 4");
         assertEquals(Status.CLIENT_ERROR_NOT_FOUND, response.getStatus());
+    }
+
+    /**
+     * Helper
+     *
+     * @param application
+     * @param directory
+     * @throws IOException
+     */
+    private void testParentDirectoryInaccessible(MyApplication application,
+            Directory directory) throws IOException {
+
+        this.testDir = new File(System.getProperty("java.io.tmpdir"),
+                "DirectoryTestCase/tests7" + new Date().getTime());
+        this.testDir.mkdirs();
+        File childDir = new File(testDir, "child dir");
+        childDir.mkdir();
+
+        application.setTestDirectory(childDir);
+
+
+
+        final File testFile = new File(childDir, "file.txt");
+        assertTrue(testFile.createNewFile());
+
+        final File privateFile = new File(testDir, "private.txt");
+        assertTrue(privateFile.createNewFile());
+
+        directory.setDeeplyAccessible(true);
+        directory.setListingAllowed(true);
+
+        Response response;
+
+        response = handle(application, this.webSiteURL,
+                this.webSiteURL.concat("file.txt"), Method.GET, null,
+                "root file access");
+        //assert no content as the file is empty
+        assertEquals(Status.SUCCESS_NO_CONTENT, response.getStatus());
+
+        response = handle(application, this.webSiteURL,
+                this.webSiteURL.concat("%2e%2e/child%20dir/file.txt"), Method.GET, null,
+                "root file access");
+        //assert no content as the file is empty
+        assertEquals(Status.SUCCESS_NO_CONTENT, response.getStatus());
+
+        response = handle(application, this.webSiteURL,
+                this.webSiteURL.concat("%2e%2e%2fchild%20dir/file.txt"), Method.GET, null,
+                "root file access");
+        //assert no content as the file is empty
+        assertEquals(Status.SUCCESS_NO_CONTENT, response.getStatus());
+
+        response = handle(application, this.webSiteURL,
+                this.webSiteURL.concat("../child%20dir/file.txt"), Method.GET, null,
+                "root file access");
+        //assert no content as the file is empty
+        assertEquals(Status.SUCCESS_NO_CONTENT, response.getStatus());
+
+
+        response = handle(application, this.webSiteURL,
+                this.webSiteURL.concat(".."), Method.GET, null,
+                "parent access 1");
+        assertEquals(Status.CLIENT_ERROR_FORBIDDEN, response.getStatus());
+
+        response = handle(application, this.webSiteURL,
+                this.webSiteURL.concat("../"), Method.GET, null,
+                "deep access 1");
+        assertEquals(Status.CLIENT_ERROR_FORBIDDEN, response.getStatus());
+
+        response = handle(application, this.webSiteURL,
+                this.webSiteURL.concat("../private.txt"), Method.GET, null,
+                "deep access 1");
+        assertEquals(Status.CLIENT_ERROR_FORBIDDEN, response.getStatus());
+
+        response = handle(application, this.webSiteURL,
+                this.webSiteURL.concat("%2e%2e"), Method.GET, null,
+                "deep access 1");
+        assertEquals(Status.CLIENT_ERROR_FORBIDDEN, response.getStatus());
+
+        response = handle(application, this.webSiteURL,
+                this.webSiteURL.concat("%2e%2e/"), Method.GET, null,
+                "deep access 1");
+        assertEquals(Status.CLIENT_ERROR_FORBIDDEN, response.getStatus());
+
+        response = handle(application, this.webSiteURL,
+                this.webSiteURL.concat("%2e%2e%2f"), Method.GET, null,
+                "deep access 1");
+        assertEquals(Status.CLIENT_ERROR_FORBIDDEN, response.getStatus());
+
+        response = handle(application, this.webSiteURL,
+                this.webSiteURL.concat("%2e%2e/private.txt"), Method.GET, null,
+                "deep access 1");
+        assertEquals(Status.CLIENT_ERROR_FORBIDDEN, response.getStatus());
+
+        response = handle(application, this.webSiteURL,
+                this.webSiteURL.concat("%2e%2e%2fprivate.txt"), Method.GET, null,
+                "deep access 1");
+        assertEquals(Status.CLIENT_ERROR_FORBIDDEN, response.getStatus());
     }
 
     /**

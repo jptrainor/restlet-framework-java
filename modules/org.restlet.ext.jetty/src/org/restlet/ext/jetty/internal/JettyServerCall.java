@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -60,6 +51,12 @@ import org.restlet.util.Series;
  */
 public class JettyServerCall extends ServerCall {
 
+    /** The wrapped Jetty HTTP channel. */
+    private final HttpChannel<?> channel;
+
+    /** Indicates if the request headers were parsed and added. */
+    private volatile boolean requestHeadersAdded;
+
     /**
      * Constructor.
      * 
@@ -87,15 +84,17 @@ public class JettyServerCall extends ServerCall {
         // Flush the response
         try {
             getChannel().getResponse().flushBuffer();
-        } catch (IOException ex) {
-            getLogger().log(Level.FINE, "Unable to flush the response", ex);
+        } catch (IOException e) {
+            getLogger().log(Level.FINE, "Unable to flush the response", e);
+        } catch (IllegalStateException e) {
+            getLogger().log(Level.WARNING, "Unable to flush the response", e);
         }
 
         // Fully complete the response
         try {
             getChannel().getResponse().closeOutput();
-        } catch (IOException ex) {
-            getLogger().log(Level.FINE, "Unable to complete the response", ex);
+        } catch (IOException e) {
+            getLogger().log(Level.FINE, "Unable to complete the response", e);
         }
     }
 
@@ -111,6 +110,15 @@ public class JettyServerCall extends ServerCall {
         if (certificateArray instanceof Certificate[])
             return Arrays.asList((Certificate[]) certificateArray);
         return null;
+    }
+
+    /**
+     * Returns the wrapped Jetty HTTP channel.
+     * 
+     * @return The wrapped Jetty HTTP channel.
+     */
+    public HttpChannel<?> getChannel() {
+        return this.channel;
     }
 
     @Override
@@ -130,15 +138,6 @@ public class JettyServerCall extends ServerCall {
     @Override
     public int getClientPort() {
         return getChannel().getRequest().getRemotePort();
-    }
-
-    /**
-     * Returns the wrapped Jetty HTTP channel.
-     * 
-     * @return The wrapped Jetty HTTP channel.
-     */
-    public HttpChannel<?> getChannel() {
-        return this.channel;
     }
 
     /**
@@ -288,13 +287,11 @@ public class JettyServerCall extends ServerCall {
         } else {
             // Send the response entity
             getChannel().getResponse().setStatus(getStatusCode());
+            try {
             super.sendResponse(response);
+            } catch (IllegalStateException e) {
+                getLogger().log(Level.WARNING, "Unable to set the status", e);
+            }
         }
     }
-
-    /** The wrapped Jetty HTTP channel. */
-    private final HttpChannel<?> channel;
-
-    /** Indicates if the request headers were parsed and added. */
-    private volatile boolean requestHeadersAdded;
 }

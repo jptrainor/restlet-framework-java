@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -26,9 +17,9 @@
  * 
  * Alternatively, you can obtain a royalty free commercial license with less
  * limitations, transferable or non-transferable, directly at
- * http://www.restlet.com/products/restlet-framework
+ * http://restlet.com/products/restlet-framework
  * 
- * Restlet is a registered trademark of Restlet
+ * Restlet is a registered trademark of Restlet S.A.S.
  */
 
 package org.restlet.ext.apispark.internal.reflect;
@@ -36,12 +27,12 @@ package org.restlet.ext.apispark.internal.reflect;
 import java.lang.reflect.Field;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.logging.Logger;
+
+import org.restlet.ext.apispark.internal.introspection.util.UnsupportedTypeException;
 
 /**
  * Handles Java reflection operations.
@@ -89,35 +80,27 @@ public class ReflectUtils {
         return segment;
     }
 
-    public static Class<?> getSimpleClass(Field field) {
-        Type genericFieldType = field.getGenericType();
-
-        if (genericFieldType != null) {
-            return getSimpleClass(genericFieldType);
-        }
-
-        return field.getType();
-    }
-
-    public static Class<?> getSimpleClass(java.lang.reflect.Type type) {
+    public static Class<?> getComponentClass(java.lang.reflect.Type type) {
         if (type instanceof Class<?>) {
             Class<?> c = (Class<?>) type;
             if (c.isArray()) {
                 return c.getComponentType();
+            } else if (Collection.class.isAssignableFrom(c)) {
+                // Simple class that extends Collection<E>. Should inspect
+                // superclass.
+                return getComponentClass(c.getGenericSuperclass());
             } else {
                 return c;
             }
         } else if (type instanceof GenericArrayType) {
             GenericArrayType gat = (GenericArrayType) type;
-            return getSimpleClass(gat.getGenericComponentType());
+            return getComponentClass(gat.getGenericComponentType());
         } else if (type instanceof ParameterizedType) {
             ParameterizedType t = (ParameterizedType) type;
             if (t.getActualTypeArguments().length == 1) {
-                return getSimpleClass(t.getActualTypeArguments()[0]);
+                return getComponentClass(t.getActualTypeArguments()[0]);
             } else {
-                Logger.getLogger(ReflectUtils.class.getName())
-                        .warning(
-                                "We don't support generic types with several arguments.");
+                throw new UnsupportedTypeException("Type " + type + " is a generic type with several arguments. This is not supported.");
             }
         }
         return (type != null) ? type.getClass() : null;
@@ -150,6 +133,42 @@ public class ReflectUtils {
      */
     public static boolean isListType(Class<?> type) {
         return Collection.class.isAssignableFrom(type) || type.isArray();
+    }
+
+    /**
+     * Returns a new instance of classname and check that it's assignable from
+     * expected class
+     * 
+     * @param className
+     *            The class Name
+     * @param instanceClazz
+     *            The expected class
+     * @param <T>
+     *            The expected class
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T newInstance(String className,
+            Class<? extends T> instanceClazz) {
+        if (className == null) {
+            return null;
+        }
+
+        try {
+            Class<?> clazz = Class.forName(className);
+            if (instanceClazz.isAssignableFrom(clazz)) {
+                return (T) clazz.getConstructor().newInstance();
+            } else {
+                throw new RuntimeException(className
+                        + " does not seem to be a valid subclass of "
+                        + instanceClazz.getName() + " class.");
+            }
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("Cannot locate the class " + className
+                    + " in the classpath.", e);
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot instantiate the class. "
+                    + "Check that the class has an empty constructor.", e);
+        }
     }
 
     /**

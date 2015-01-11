@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -57,8 +48,8 @@ import org.restlet.data.Reference;
 import org.restlet.data.ServerInfo;
 import org.restlet.data.Status;
 import org.restlet.engine.resource.AnnotationInfo;
-import org.restlet.engine.resource.MethodAnnotationInfo;
 import org.restlet.engine.resource.AnnotationUtils;
+import org.restlet.engine.resource.MethodAnnotationInfo;
 import org.restlet.engine.resource.VariantInfo;
 import org.restlet.representation.Representation;
 import org.restlet.representation.RepresentationInfo;
@@ -110,8 +101,14 @@ public abstract class ServerResource extends Resource {
     /** Indicates if conditional handling is enabled. */
     private volatile boolean conditional;
 
+    /** The description. */
+    private volatile String description;
+
     /** Indicates if the identified resource exists. */
     private volatile boolean existing;
+
+    /** The display name. */
+    private volatile String name;
 
     /** Indicates if content negotiation of response entities is enabled. */
     private volatile boolean negotiated;
@@ -270,12 +267,9 @@ public abstract class ServerResource extends Resource {
 
         if (getResponse() != null) {
             getResponse().setStatus(status);
-
-            if (getResponseEntity() == null) {
-                getResponse().setEntity(
-                        getStatusService().toRepresentation(status, throwable,
-                                this));
-            }
+            Representation errorEntity = getStatusService().toRepresentation(
+                    status, this);
+            getResponse().setEntity(errorEntity);
         }
     }
 
@@ -817,6 +811,15 @@ public abstract class ServerResource extends Resource {
     }
 
     /**
+     * Returns the description.
+     * 
+     * @return The description
+     */
+    public String getDescription() {
+        return this.description;
+    }
+
+    /**
      * Returns information about the resource's representation. Those metadata
      * are important for conditional method processing. The advantage over the
      * complete {@link Representation} class is that it is much lighter to
@@ -854,6 +857,15 @@ public abstract class ServerResource extends Resource {
     protected RepresentationInfo getInfo(Variant variant)
             throws ResourceException {
         return get(variant);
+    }
+
+    /**
+     * Returns the display name.
+     * 
+     * @return The display name.
+     */
+    public String getName() {
+        return this.name;
     }
 
     /**
@@ -1622,6 +1634,16 @@ public abstract class ServerResource extends Resource {
     }
 
     /**
+     * Sets the description.
+     * 
+     * @param description
+     *            The description.
+     */
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    /**
      * Sets the set of dimensions on which the response entity may vary. The set
      * instance set must be thread-safe (use {@link CopyOnWriteArraySet} for
      * example.
@@ -1675,6 +1697,16 @@ public abstract class ServerResource extends Resource {
         if (getResponse() != null) {
             getResponse().setLocationRef(locationUri);
         }
+    }
+
+    /**
+     * Sets the display name.
+     * 
+     * @param name
+     *            The display name.
+     */
+    public void setName(String name) {
+        this.name = name;
     }
 
     /**

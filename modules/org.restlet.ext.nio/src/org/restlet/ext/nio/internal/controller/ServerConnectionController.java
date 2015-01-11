@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -86,6 +77,23 @@ public class ServerConnectionController extends ConnectionController {
         }
     }
 
+    @Override
+    protected void doInit() {
+        super.doInit();
+
+        // Register interest in NIO accept events
+        try {
+            getHelper().getServerSocketChannel().register(getSelector(),
+                    SelectionKey.OP_ACCEPT);
+        } catch (IOException ioe) {
+            getHelper().getLogger().log(Level.WARNING,
+                    "Unexpected error while registering an NIO selection key",
+                    ioe);
+        }
+
+        this.latch.countDown();
+    }
+
     /**
      * Returns the parent server helper.
      * 
@@ -153,22 +161,5 @@ public class ServerConnectionController extends ConnectionController {
                         "Unexpected error while accepting new connection", ex);
             }
         }
-    }
-
-    @Override
-    protected void doInit() {
-        super.doInit();
-
-        // Register interest in NIO accept events
-        try {
-            getHelper().getServerSocketChannel().register(getSelector(),
-                    SelectionKey.OP_ACCEPT);
-        } catch (IOException ioe) {
-            getHelper().getLogger().log(Level.WARNING,
-                    "Unexpected error while registering an NIO selection key",
-                    ioe);
-        }
-
-        this.latch.countDown();
     }
 }

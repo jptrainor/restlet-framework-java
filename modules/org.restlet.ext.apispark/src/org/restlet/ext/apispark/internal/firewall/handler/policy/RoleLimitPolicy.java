@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -55,7 +46,7 @@ public class RoleLimitPolicy extends LimitPolicy {
      * The default limit applied when the request's user has no role or his
      * roles are not contained in {@link RoleLimitPolicy#limitsPerRole}.
      */
-    public int defaultLimit;
+    private int defaultLimit;
 
     /** Maps a role name to a limit. */
     private Map<String, Integer> limitsPerRole;
@@ -117,12 +108,21 @@ public class RoleLimitPolicy extends LimitPolicy {
     }
 
     /**
+     * Returns the policy's default limit.
+     * 
+     * @return Policy's default limit.
+     */
+    public int getDefaultLimit() {
+        return defaultLimit;
+    }
+
+    /**
      * Returns the highest limit associated to the user's roles.
      */
     @Override
     public int getLimit(Request request, String countedValue) {
         // TODO we don't rely on the counted value?
-        int result = defaultLimit;
+        int result = 0;
         List<Role> roles = request.getClientInfo().getRoles();
         // iterate over user's roles
         for (Role role : roles) {
@@ -132,7 +132,43 @@ public class RoleLimitPolicy extends LimitPolicy {
             }
         }
 
+        if (result == 0) {
+            result = defaultLimit;
+        }
+
         return result;
+    }
+
+    /**
+     * Returns the {@link Map} defining limits corresponding to different
+     * {@link Role}
+     * 
+     * @return Limits corresponding to different {@link Role}
+     */
+    public Map<String, Integer> getLimitsPerRole() {
+        return limitsPerRole;
+    }
+
+    /**
+     * Set the policy's default limit.
+     * 
+     * @param defaultLimit
+     *            Policy's default limit.
+     */
+    public void setDefaultLimit(int defaultLimit) {
+        this.defaultLimit = defaultLimit;
+    }
+
+    /**
+     * Set the {@link Map} defining limits corresponding to different
+     * {@link Role}
+     * 
+     * @param limitsPerRole
+     *            {@link Map} defining limits corresponding to different
+     *            {@link Role}
+     */
+    public void setLimitsPerRole(Map<String, Integer> limitsPerRole) {
+        this.limitsPerRole = limitsPerRole;
     }
 
 }

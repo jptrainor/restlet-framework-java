@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -34,9 +25,7 @@
 package org.restlet.ext.apispark.internal.firewall.rule;
 
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 
-import org.restlet.Context;
 import org.restlet.ext.apispark.internal.firewall.rule.counter.ConcurrentCounter;
 import org.restlet.ext.apispark.internal.firewall.rule.policy.CountingPolicy;
 
@@ -51,9 +40,7 @@ import com.google.common.cache.LoadingCache;
  */
 public class ConcurrentFirewallCounterRule extends FirewallCounterRule {
 
-    /**
-     * Cache which associates a countedValue to a {@link ConcurrentCounter}
-     **/
+    /** Cache of {@link ConcurrentCounter}. */
     private LoadingCache<String, ConcurrentCounter> cache;
 
     /**
@@ -69,12 +56,6 @@ public class ConcurrentFirewallCounterRule extends FirewallCounterRule {
 
     @Override
     protected void decrementCounter(String countedValue) {
-
-        Context.getCurrentLogger().log(
-                Level.FINE,
-                "Counter " + this.getClass() + " decremented for value: "
-                        + countedValue);
-
         ConcurrentCounter counter = cache.getUnchecked(countedValue);
         counter.decrement();
     }

@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -266,51 +257,6 @@ public class ParameterList {
                                     "Target object has no String constructor, valueOf or fromString method."));
         }
 
-        private void handleExceptionOnInvocation(String value, Exception e)
-                throws ConvertParameterException {
-            final Throwable cause = e.getCause();
-            if (e instanceof WebApplicationException
-                    || cause instanceof WebApplicationException) {
-                throw (WebApplicationException) cause;
-
-                // swallow the typical invocation exceptions, convert real
-                // exceptions to ConvertParameterException
-            } else if (!(e instanceof NoSuchMethodException)
-                    && !(e instanceof IllegalAccessException)
-                    && !(e instanceof InvocationTargetException)
-                    && !(e instanceof InstantiationException)
-                    && !(e instanceof NoSuchMethodException)) {
-                throw ConvertParameterException
-                        .object(this.convertTo, value, e);
-            }
-        }
-
-        private Object convertWithConverterUtils(String paramValue) {
-            Object result = null;
-
-            if (this.tlContext.get().getRequest().getEntity() != null
-                    && paramValue != null) {
-                try {
-                    ConverterHelper converterHelper = ConverterUtils
-                            .getBestHelper(this.tlContext.get().getRequest()
-                                    .getEntity(), this.convertTo, null);
-                    List<VariantInfo> variants = converterHelper
-                            .getVariants(this.convertTo);
-                    for (int i = 0; result == null && i < variants.size(); i++) {
-                        result = converterHelper.toObject(
-                                new StringRepresentation(paramValue, variants
-                                        .get(i).getMediaType()),
-                                this.convertTo, null);
-                    }
-                } catch (Exception exception) {
-                    // -- don't worry about it...proceed with reflective calls
-                    exception.printStackTrace();
-                }
-            }
-
-            return result;
-        }
-
         protected Object convertParamValues(Iterator<String> paramValueIter)
                 throws ConvertParameterException {
             final Collection<Object> coll = createColl();
@@ -332,6 +278,31 @@ public class ParameterList {
             return unmodifiable(coll);
         }
 
+        private Object convertWithConverterUtils(String paramValue) {
+            Object result = null;
+
+            if (this.tlContext.get().getRequest().getEntity() != null
+                    && paramValue != null) {
+                try {
+                    ConverterHelper converterHelper = ConverterUtils
+                            .getBestHelper(this.tlContext.get().getRequest()
+                                    .getEntity(), this.convertTo, null);
+                    List<VariantInfo> variants = converterHelper
+                            .getVariants(this.convertTo);
+                    for (int i = 0; result == null && i < variants.size(); i++) {
+                        result = converterHelper.toObject(
+                                new StringRepresentation(paramValue, variants
+                                        .get(i).getMediaType()),
+                                this.convertTo, null);
+                    }
+                } catch (Exception exception) {
+                    // -- don't worry about it...proceed with reflective calls
+                }
+            }
+
+            return result;
+        }
+
         /**
          * @return an new created instance of {@link #collType}. Returns null,
          *         if collType is null.
@@ -348,16 +319,6 @@ public class ParameterList {
                         "Could not instantiate the collection type "
                                 + this.collType, e);
             }
-        }
-
-        protected <A> Collection<A> unmodifiable(Collection<A> coll) {
-            if (coll instanceof List<?>)
-                return Collections.unmodifiableList((List<A>) coll);
-            if (coll instanceof SortedSet<?>)
-                return Collections.unmodifiableSortedSet((SortedSet<A>) coll);
-            if (coll instanceof Set<?>)
-                return Collections.unmodifiableSet((Set<A>) coll);
-            return Collections.unmodifiableCollection(coll);
         }
 
         protected abstract boolean decoding();
@@ -449,6 +410,35 @@ public class ParameterList {
 
         public Object getValue() {
             return getParamValue();
+        }
+
+        private void handleExceptionOnInvocation(String value, Exception e)
+                throws ConvertParameterException {
+            final Throwable cause = e.getCause();
+            if (e instanceof WebApplicationException
+                    || cause instanceof WebApplicationException) {
+                throw (WebApplicationException) cause;
+
+                // swallow the typical invocation exceptions, convert real
+                // exceptions to ConvertParameterException
+            } else if (!(e instanceof NoSuchMethodException)
+                    && !(e instanceof IllegalAccessException)
+                    && !(e instanceof InvocationTargetException)
+                    && !(e instanceof InstantiationException)
+                    && !(e instanceof NoSuchMethodException)) {
+                throw ConvertParameterException
+                        .object(this.convertTo, value, e);
+            }
+        }
+
+        protected <A> Collection<A> unmodifiable(Collection<A> coll) {
+            if (coll instanceof List<?>)
+                return Collections.unmodifiableList((List<A>) coll);
+            if (coll instanceof SortedSet<?>)
+                return Collections.unmodifiableSortedSet((SortedSet<A>) coll);
+            if (coll instanceof Set<?>)
+                return Collections.unmodifiableSet((Set<A>) coll);
+            return Collections.unmodifiableCollection(coll);
         }
     }
 
@@ -579,9 +569,9 @@ public class ParameterList {
 
     static class FormParamGetter extends FormOrQueryParamGetter {
 
-        private final FormParam formParam;
-
         private static Form form;
+
+        private final FormParam formParam;
 
         FormParamGetter(FormParam formParam, DefaultValue defaultValue,
                 Class<?> convToCl, Type convToGen,

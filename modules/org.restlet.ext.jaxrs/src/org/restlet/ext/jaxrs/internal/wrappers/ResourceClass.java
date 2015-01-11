@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -109,35 +100,6 @@ public class ResourceClass extends AbstractJaxRsWrapper {
     private final Collection<SubResourceLocator> subResourceLocators = new ArrayList<SubResourceLocator>();
 
     /**
-     * Creates a new root resource class wrapper. Will not set the path, because
-     * it is not available for a normal resource class.
-     * 
-     * @param jaxRsClass
-     * @param tlContext
-     *            the {@link ThreadLocalizedContext} of the
-     *            {@link org.restlet.ext.jaxrs.JaxRsRestlet}.
-     * @param jaxRsProviders
-     *            all entity providers
-     * @param extensionBackwardMapping
-     *            the extension backward mapping
-     * @param logger
-     *            The logger to log warnings, if the class is not valid.
-     * @throws MissingAnnotationException
-     * @throws IllegalArgumentException
-     * @see ResourceClasses#getResourceClass(Class)
-     */
-    ResourceClass(Class<?> jaxRsClass, ThreadLocalizedContext tlContext,
-            JaxRsProviders jaxRsProviders,
-            ExtensionBackwardMapping extensionBackwardMapping, Logger logger)
-            throws IllegalArgumentException, MissingAnnotationException {
-        super();
-        this.leaveEncoded = jaxRsClass.isAnnotationPresent(Encoded.class);
-        this.jaxRsClass = jaxRsClass;
-        initResourceMethodsAndLocators(tlContext, jaxRsProviders,
-                extensionBackwardMapping, logger);
-    }
-
-    /**
      * Creates a new root resource class wrapper. To be used by subclass
      * {@link RootResourceClass}.
      * 
@@ -165,6 +127,35 @@ public class ResourceClass extends AbstractJaxRsWrapper {
         this.leaveEncoded = jaxRsClass.isAnnotationPresent(Encoded.class);
         this.jaxRsClass = jaxRsClass;
         this.initResourceMethodsAndLocators(tlContext, jaxRsProviders,
+                extensionBackwardMapping, logger);
+    }
+
+    /**
+     * Creates a new root resource class wrapper. Will not set the path, because
+     * it is not available for a normal resource class.
+     * 
+     * @param jaxRsClass
+     * @param tlContext
+     *            the {@link ThreadLocalizedContext} of the
+     *            {@link org.restlet.ext.jaxrs.JaxRsRestlet}.
+     * @param jaxRsProviders
+     *            all entity providers
+     * @param extensionBackwardMapping
+     *            the extension backward mapping
+     * @param logger
+     *            The logger to log warnings, if the class is not valid.
+     * @throws MissingAnnotationException
+     * @throws IllegalArgumentException
+     * @see ResourceClasses#getResourceClass(Class)
+     */
+    ResourceClass(Class<?> jaxRsClass, ThreadLocalizedContext tlContext,
+            JaxRsProviders jaxRsProviders,
+            ExtensionBackwardMapping extensionBackwardMapping, Logger logger)
+            throws IllegalArgumentException, MissingAnnotationException {
+        super();
+        this.leaveEncoded = jaxRsClass.isAnnotationPresent(Encoded.class);
+        this.jaxRsClass = jaxRsClass;
+        initResourceMethodsAndLocators(tlContext, jaxRsProviders,
                 extensionBackwardMapping, logger);
     }
 

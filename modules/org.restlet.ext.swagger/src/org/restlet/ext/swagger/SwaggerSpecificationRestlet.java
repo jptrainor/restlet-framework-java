@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -26,7 +17,7 @@
  * 
  * Alternatively, you can obtain a royalty free commercial license with less
  * limitations, transferable or non-transferable, directly at
- * http://www.restlet.com/products/restlet-framework
+ * http://restlet.com/products/restlet-framework
  * 
  * Restlet is a registered trademark of Restlet S.A.S.
  */
@@ -38,78 +29,130 @@ import org.restlet.Context;
 import org.restlet.Request;
 import org.restlet.Response;
 import org.restlet.Restlet;
-import org.restlet.data.Header;
 import org.restlet.data.Method;
+import org.restlet.data.Reference;
 import org.restlet.data.Status;
-import org.restlet.engine.header.HeaderConstants;
-import org.restlet.ext.apispark.model.Definition;
+import org.restlet.ext.apispark.internal.conversion.swagger.v1_2.SwaggerTranslator;
+import org.restlet.ext.apispark.internal.conversion.swagger.v1_2.model.ApiDeclaration;
+import org.restlet.ext.apispark.internal.conversion.swagger.v1_2.model.ResourceListing;
+import org.restlet.ext.apispark.internal.introspection.application.ApplicationIntrospector;
+import org.restlet.ext.apispark.internal.model.Definition;
 import org.restlet.ext.jackson.JacksonRepresentation;
-import org.restlet.ext.swagger.internal.SwaggerTranslator;
-import org.restlet.ext.swagger.internal.model.ApiDeclaration;
-import org.restlet.ext.swagger.internal.model.ResourceListing;
-import org.restlet.ext.swagger.internal.reflect.Introspector;
 import org.restlet.representation.Representation;
-import org.restlet.util.Series;
-
-import com.wordnik.swagger.core.SwaggerSpec;
+import org.restlet.routing.Router;
 
 /**
  * Restlet that generates Swagger documentation in the format defined by the
  * swagger-spec project.<br>
  * It helps to generate the high level documentation for the whole API (set by
- * calling {@link #setApiInboundRoot(Application)} or
- * {@link #setApiInboundRoot(Restlet)} methods, and the documentation for each
- * resource.<br>
+ * calling {@link #setApplication(Application)} or
+ * {@link #setApiInboundRoot(Application)} methods, and the documentation for
+ * each resource.<br>
  * By default it instrospects the chain of Application's routers, filters,
  * restlet.<br>
- * Use the {@link JaxrsSwaggerSpecificationRestlet} restlet for Jax-RS
- * applications.
+ * Use the {@link JaxRsApplicationSwaggerSpecificationRestlet} restlet for
+ * Jax-RS applications.
+ * 
+ * <p>
+ * Usage example:
+ * 
+ * <pre>
+ * SwaggerSpecificationRestlet swaggerSpecificationRestlet = new SwaggerSpecificationRestlet(this); // this is the current Application
+ * swaggerSpecificationRestlet.setBasePath(&quot;http://myapp.com/api/v1&quot;);
+ * swaggerSpecificationRestlet.attach(baseRouter);
+ * </pre>
+ * 
+ * </p>
  * 
  * @author Thierry Boileau
- * @see https://github.com/wordnik/swagger-ui
- * @see https://helloreverb.com/developers/swagger
+ * @see <a href="http://github.com/wordnik/swagger-ui">Swagger UI (github)</a>
+ * @see <a href="http://petstore.swagger.wordnik.com">Petstore sample
+ *      application of Swagger-UI</a>
+ * @see <a href="http://helloreverb.com/developers/swagger">Swagger Developper
+ *      page</a>
  */
 public class SwaggerSpecificationRestlet extends Restlet {
-
-    /** The root Restlet to describe. */
-    Restlet apiInboundRoot;
 
     /** The version of the API. */
     private String apiVersion;
 
     /** The Application to describe. */
-    Application application;
+    private Application application;
 
     /** The base path of the API. */
     private String basePath;
 
+    /** The base reference of the API. */
+    private Reference baseRef;
+
     /** The RWADef of the API. */
     private Definition definition;
 
-    /** The root Restlet to describe. */
-    private String jsonPath;
-
-    /** The version of Swagger. */
-    private String swaggerVersion;
+    /**
+     * The version of the Swagger specification. Default is
+     * {@link SwaggerTranslator#SWAGGER_VERSION}
+     */
+    private String swaggerVersion = SwaggerTranslator.SWAGGER_VERSION;
 
     /**
      * Default constructor.<br>
-     * Sets the {@link #swaggerVersion} to {@link SwaggerSpec#version()}.
      */
     public SwaggerSpecificationRestlet() {
-        this(null);
     }
 
     /**
      * Constructor.<br>
-     * Sets the {@link #swaggerVersion} to {@link SwaggerSpec#version()}.
+     *
+     * @param application
+     *            The application to describe.
+     */
+    public SwaggerSpecificationRestlet(Application application) {
+        super(application.getContext());
+        this.application = application;
+    }
+
+    /**
+     * Constructor.<br>
      * 
      * @param context
      *            The context.
      */
     public SwaggerSpecificationRestlet(Context context) {
         super(context);
-        swaggerVersion = "1.2";
+    }
+
+    /**
+     * Defines two routes, one for the high level "Resource listing" (by default
+     * "/api-docs"), and the other one for the "API declaration". The second
+     * route is a sub-resource of the first one, defined with the path variable
+     * "resource" (ie "/api-docs/{resource}").
+     * 
+     * @param router
+     *            The router on which defining the new route.
+     * 
+     * @see #attach(org.restlet.routing.Router, String) to attach it with a
+     *      custom path
+     */
+    public void attach(Router router) {
+        attach(router, "/api-docs");
+    }
+
+    /**
+     * Defines two routes, one for the high level "Resource listing", and the
+     * other one for the "API declaration". The second route is a sub-resource
+     * of the first one, defined with the path variable "resource".
+     * 
+     * @param router
+     *            The router on which defining the new route.
+     * @param path
+     *            The root path of the documentation Restlet.
+     * 
+     * @see #attach(org.restlet.routing.Router) to attach it with the default
+     *      path
+     */
+    public void attach(Router router, String path) {
+        router.attach(path, this);
+        router.attach(path + "/{resource}", this);
     }
 
     /**
@@ -121,23 +164,10 @@ public class SwaggerSpecificationRestlet extends Restlet {
      * @return The representation of the API declaration.
      */
     public Representation getApiDeclaration(String category) {
-        return new JacksonRepresentation<ApiDeclaration>(
-                SwaggerTranslator.getApiDeclaration(category, getDefinition()));
-    }
-
-    /**
-     * Returns the root Restlet for the given application.
-     * 
-     * @return The root Restlet for the given application.
-     */
-    public Restlet getApiInboundRoot() {
-        if (apiInboundRoot == null) {
-            if (application != null) {
-                apiInboundRoot = application.getInboundRoot();
-            }
-        }
-
-        return apiInboundRoot;
+        ApiDeclaration apiDeclaration = SwaggerTranslator.getApiDeclaration(
+                category, getDefinition());
+        apiDeclaration.setSwaggerVersion(swaggerVersion);
+        return new JacksonRepresentation<>(apiDeclaration);
     }
 
     /**
@@ -166,28 +196,17 @@ public class SwaggerSpecificationRestlet extends Restlet {
     private synchronized Definition getDefinition() {
         if (definition == null) {
             synchronized (SwaggerSpecificationRestlet.class) {
-                Introspector i = new Introspector(application, false);
-                definition = i.getDefinition();
+                definition = ApplicationIntrospector.getDefinition(application,
+                        baseRef, null, false);
                 // This data seems necessary for Swagger codegen.
                 if (definition.getVersion() == null) {
-                    definition.setVersion("1.0");
-                }
-                if (definition.getEndpoint() == null) {
-                    definition.setEndpoint("http://localhost:9000/v1");
+                    definition.setVersion(apiVersion != null ? apiVersion
+                            : "1.0");
                 }
             }
         }
 
         return definition;
-    }
-
-    /**
-     * Returns the base path of the API's resource.
-     * 
-     * @return The base path of the API's resource.
-     */
-    public String getJsonPath() {
-        return jsonPath;
     }
 
     /**
@@ -198,50 +217,38 @@ public class SwaggerSpecificationRestlet extends Restlet {
      *         Application.
      */
     public Representation getResourceListing() {
-        return new JacksonRepresentation<ResourceListing>(
-                SwaggerTranslator.getResourcelisting(getDefinition()));
+        ResourceListing resourcelisting = SwaggerTranslator
+                .getResourcelisting(getDefinition());
+        resourcelisting.setSwaggerVersion(swaggerVersion);
+        return new JacksonRepresentation<>(resourcelisting);
     }
 
     /**
-     * Returns the version of Swagger used to generate this documentation.
+     * Returns the version of the Swagger specification. Default is
+     * {@link SwaggerTranslator#SWAGGER_VERSION}
      * 
-     * @return The version of Swagger used to generate this documentation.
+     * @return The version of the Swagger specification.
      */
     public String getSwaggerVersion() {
         return swaggerVersion;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public void handle(Request request, Response response) {
         super.handle(request, response);
 
-        // CORS support for Swagger-UI
-        Series<Header> headers = new Series<Header>(Header.class);
-        headers.set(
-                "Access-Control-Expose-Headers",
-                "Authorization, Link, X-RateLimit-Limit, X-RateLimit-Remaining, X-OAuth-Scopes, X-Accepted-OAuth-Scopes");
-        headers.set("Access-Control-Allow-Headers", "Authorization,");
-        headers.set("Access-Control-Allow-Credentials", "true");
-        headers.set("Access-Control-Allow-Methods", "GET");
-        Series<Header> reqHeaders = (Series<Header>) request.getAttributes()
-                .get(HeaderConstants.ATTRIBUTE_HEADERS);
-        String requestOrigin = reqHeaders.getFirstValue("Origin", "*");
-        headers.set("Access-Control-Allow-Origin", requestOrigin);
-        response.getAttributes()
-                .put(HeaderConstants.ATTRIBUTE_HEADERS, headers);
+        if (Method.GET.equals(request.getMethod())) {
+            Object resource = request.getAttributes().get("resource");
 
-        if (!Method.GET.equals(request.getMethod())) {
+            if (resource instanceof String) {
+                response.setEntity(getApiDeclaration((String) resource));
+            } else {
+                response.setEntity(getResourceListing());
+            }
+        } else {
             response.setStatus(Status.CLIENT_ERROR_METHOD_NOT_ALLOWED);
         }
 
-        Object resource = request.getAttributes().get("resource");
-
-        if (resource instanceof String) {
-            response.setEntity(getApiDeclaration((String) resource));
-        } else {
-            response.setEntity(getResourceListing());
-        }
     }
 
     /**
@@ -255,16 +262,6 @@ public class SwaggerSpecificationRestlet extends Restlet {
     }
 
     /**
-     * Sets the root Restlet for the given application.
-     * 
-     * @param apiInboundRoot
-     *            The application's root Restlet.
-     */
-    public void setApiInboundRoot(Restlet apiInboundRoot) {
-        this.apiInboundRoot = apiInboundRoot;
-    }
-
-    /**
      * Sets the API's version.
      * 
      * @param apiVersion
@@ -275,6 +272,16 @@ public class SwaggerSpecificationRestlet extends Restlet {
     }
 
     /**
+     * Sets the root Restlet for the given application.
+     * 
+     * @param application
+     *            The application.
+     */
+    public void setApplication(Application application) {
+        this.application = application;
+    }
+
+    /**
      * Sets the base path of the API.
      * 
      * @param basePath
@@ -282,23 +289,15 @@ public class SwaggerSpecificationRestlet extends Restlet {
      */
     public void setBasePath(String basePath) {
         this.basePath = basePath;
+        // Process basepath and check validity
+        this.baseRef = basePath != null ? new Reference(basePath) : null;
     }
 
     /**
-     * Sets the base path of the API's resource.
-     * 
-     * @param basePath
-     *            The base path of the API's resource.
-     */
-    public void setJsonPath(String jsonPath) {
-        this.jsonPath = jsonPath;
-    }
-
-    /**
-     * Sets the version of Swagger used to generate this documentation.
+     * Sets the version of the Swagger specification.
      * 
      * @param swaggerVersion
-     *            The version of Swagger.
+     *            The version of the Swagger specification.
      */
     public void setSwaggerVersion(String swaggerVersion) {
         this.swaggerVersion = swaggerVersion;

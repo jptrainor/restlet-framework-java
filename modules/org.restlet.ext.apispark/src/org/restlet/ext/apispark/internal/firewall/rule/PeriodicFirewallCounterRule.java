@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -51,13 +42,11 @@ import com.google.common.cache.LoadingCache;
  */
 public class PeriodicFirewallCounterRule extends FirewallCounterRule {
 
-    /**
-     * Guava cache which associates a countedValue to a {@link PeriodicCounter}
-     **/
+    /** Cache of {@link PeriodicCounter}. */
     private LoadingCache<String, PeriodicCounter> cache;
 
-    /** Period associated to the {@link FirewallCounterRule} **/
-    private int period;
+    /** Period in second associated to the {@link FirewallCounterRule} */
+    private long period;
 
     /**
      * Contructor.
@@ -65,21 +54,24 @@ public class PeriodicFirewallCounterRule extends FirewallCounterRule {
      * @param period
      *            Period associated to the {@link PeriodicFirewallCounterRule}.
      *            Each created {@link PeriodicCounter} will have this one.
+     * @param periodUnit
+     *            Period time unit associated to the {@link FirewallCounterRule}
+     *            .
      * @param countingPolicy
      *            The associated counting policy.
      */
-    public PeriodicFirewallCounterRule(int period, CountingPolicy countingPolicy) {
+    public PeriodicFirewallCounterRule(int period, TimeUnit periodUnit,
+            CountingPolicy countingPolicy) {
         super(countingPolicy);
-        this.period = period;
+        this.period = periodUnit.toSeconds(period);
         initializeCache();
     }
 
+    /**
+     * Does nothing.
+     */
     @Override
     protected void decrementCounter(String countedValue) {
-    }
-
-    protected int getPeriod() {
-        return this.period;
     }
 
     @Override
@@ -91,15 +83,17 @@ public class PeriodicFirewallCounterRule extends FirewallCounterRule {
     private void initializeCache() {
         CacheLoader<String, PeriodicCounter> loader = new CacheLoader<String, PeriodicCounter>() {
             public PeriodicCounter load(String key) {
-                return initializeCounter();
+                return new PeriodicCounter(period);
             }
         };
-        cache = CacheBuilder.newBuilder()
-                .expireAfterAccess(2 * period, TimeUnit.SECONDS).build(loader);
-    }
 
-    public PeriodicCounter initializeCounter() {
-        return new PeriodicCounter(getPeriod());
+        // do not set cache expiration below 1 minute
+        long cacheExpiration = 2 * period < TimeUnit.MINUTES.toSeconds(1) ? TimeUnit.MINUTES
+                .toSeconds(1) : 2 * period;
+
+        cache = CacheBuilder.newBuilder()
+                .expireAfterAccess(cacheExpiration, TimeUnit.SECONDS)
+                .build(loader);
     }
 
 }

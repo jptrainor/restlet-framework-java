@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -211,13 +202,8 @@ public class DirectoryServerResource extends ServerResource {
 
             // The target URI does not take into account the query and fragment
             // parts of the resource.
-            this.targetUri = new Reference(directory.getRootRef().toString()
-                    + this.relativePart).normalize().toString(false, false);
-            if (!this.targetUri.startsWith(directory.getRootRef().toString())) {
-                // Prevent the client from accessing resources in upper
-                // directories
-                this.targetUri = directory.getRootRef().toString();
-            }
+            this.targetUri = new Reference(directory.getRootRef().toString() + this.relativePart).toString(false, false);
+            preventUpperDirectoryAccess();
 
             if (getClientDispatcher() == null) {
                 getLogger().warning(
@@ -401,6 +387,17 @@ public class DirectoryServerResource extends ServerResource {
             getLogger().fine("Converted base name : " + this.baseName);
         } catch (IOException ioe) {
             throw new ResourceException(ioe);
+        }
+    }
+
+    /**
+     *  Prevent the client from accessing resources in upper
+     *  directories
+     */
+    public void preventUpperDirectoryAccess() {
+        String targetUriPath = new Reference(Reference.decode(targetUri)).normalize().toString();
+        if (!targetUriPath.startsWith(directory.getRootRef().toString())) {
+            throw new ResourceException(Status.CLIENT_ERROR_FORBIDDEN);
         }
     }
 

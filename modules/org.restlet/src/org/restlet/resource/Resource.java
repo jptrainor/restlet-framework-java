@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -63,7 +54,6 @@ import org.restlet.data.Status;
 import org.restlet.representation.Representation;
 import org.restlet.representation.Variant;
 import org.restlet.service.MetadataService;
-import org.restlet.service.StatusService;
 import org.restlet.util.Series;
 
 /**
@@ -203,10 +193,7 @@ public abstract class Resource {
 
     /**
      * Invoked when a {@link Throwable} is caught during initialization,
-     * handling or releasing. By default, updates the responses's status with
-     * the result of
-     * {@link org.restlet.service.StatusService#getStatus(Throwable, Resource)}
-     * .
+     * handling or releasing.
      * 
      * @param throwable
      *            The caught error or exception.
@@ -743,19 +730,20 @@ public abstract class Resource {
         return getResponse() == null ? null : getResponse().getStatus();
     }
 
+    // [ifndef gwt] method
     /**
      * Returns the application's status service or create a new one.
      * 
      * @return The status service.
      */
-    public StatusService getStatusService() {
-        StatusService result = null;
+    public org.restlet.service.StatusService getStatusService() {
+        org.restlet.service.StatusService result = null;
 
         // [ifndef gwt] instruction
         result = getApplication().getStatusService();
 
         if (result == null) {
-            result = new StatusService();
+            result = new org.restlet.service.StatusService();
         }
 
         return result;
@@ -911,8 +899,11 @@ public abstract class Resource {
             try {
                 org.restlet.service.ConverterService cs = getConverterService();
                 result = cs.toObject(source, target, this);
+            } catch (ResourceException e) {
+                throw e;
             } catch (Exception e) {
-                throw new ResourceException(e);
+                throw new ResourceException(
+                        Status.CLIENT_ERROR_UNPROCESSABLE_ENTITY, e);
             }
         }
 

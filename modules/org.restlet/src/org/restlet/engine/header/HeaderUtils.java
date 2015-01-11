@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -80,6 +71,12 @@ public class HeaderUtils {
      */
     private static final Set<String> STANDARD_HEADERS = Collections
             .unmodifiableSet(new CaseInsensitiveHashSet(Arrays.asList(
+                    HeaderConstants.HEADER_ACCESS_CONTROL_ALLOW_CREDENTIAL,
+                    HeaderConstants.HEADER_ACCESS_CONTROL_ALLOW_HEADERS,
+                    HeaderConstants.HEADER_ACCESS_CONTROL_ALLOW_METHODS,
+                    HeaderConstants.HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
+                    HeaderConstants.HEADER_ACCESS_CONTROL_REQUEST_HEADERS,
+                    HeaderConstants.HEADER_ACCESS_CONTROL_REQUEST_METHOD,
                     HeaderConstants.HEADER_ACCEPT,
                     HeaderConstants.HEADER_ACCEPT_CHARSET,
                     HeaderConstants.HEADER_ACCEPT_ENCODING,
@@ -459,6 +456,20 @@ public class HeaderUtils {
         }
         // [enddef]
 
+        // CORS headers
+
+        if (request.getAccessControlRequestHeaders() != null) {
+            addHeader(
+                    HeaderConstants.HEADER_ACCESS_CONTROL_REQUEST_HEADERS,
+                    StringWriter.write(request.getAccessControlRequestHeaders()),
+                    headers);
+        }
+
+        if (request.getAccessControlRequestMethod() != null) {
+            addHeader(HeaderConstants.HEADER_ACCESS_CONTROL_REQUEST_METHOD,
+                    request.getAccessControlRequestMethod().getName(), headers);
+        }
+
         // ----------------------------------
         // 3) Add supported extension headers
         // ----------------------------------
@@ -585,6 +596,32 @@ public class HeaderUtils {
                                 .formatRequest(challengeRequest, response,
                                         headers), headers);
             }
+        }
+
+        // CORS headers
+
+        if (response.getAccessControlAllowCredential() != null) {
+            addHeader(HeaderConstants.HEADER_ACCESS_CONTROL_ALLOW_CREDENTIAL,
+                    response.getAccessControlAllowCredential().toString(),
+                    headers);
+        }
+
+        if (response.getAccessControlAllowHeaders() != null) {
+            addHeader(
+                    HeaderConstants.HEADER_ACCESS_CONTROL_ALLOW_HEADERS,
+                    StringWriter.write(response.getAccessControlAllowHeaders()),
+                    headers);
+        }
+        if (response.getAccessControlAllowOrigin() != null) {
+            addHeader(HeaderConstants.HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
+                    response.getAccessControlAllowOrigin(), headers);
+        }
+
+        if (response.getAccessControlAllowMethods() != null) {
+            addHeader(
+                    HeaderConstants.HEADER_ACCESS_CONTROL_ALLOW_METHODS,
+                    MethodWriter.write(response.getAccessControlAllowMethods()),
+                    headers);
         }
 
         // ----------------------------------
@@ -766,6 +803,23 @@ public class HeaderUtils {
                     TokenReader tr = new TokenReader(header.getValue());
                     response.getServerInfo().setAcceptingRanges(
                             tr.readValues().contains("bytes"));
+                } else if (header.getName().equalsIgnoreCase(
+                        HeaderConstants.HEADER_ACCESS_CONTROL_ALLOW_CREDENTIAL)) {
+                    response.setAccessControlAllowCredential(Boolean
+                            .parseBoolean(header.getValue()));
+                    StringReader.addValues(header,
+                            response.getAccessControlAllowHeaders());
+                } else if (header.getName().equalsIgnoreCase(
+                        HeaderConstants.HEADER_ACCESS_CONTROL_ALLOW_ORIGIN)) {
+                    response.setAccessControlAllowOrigin(header.getValue());
+                } else if (header.getName().equalsIgnoreCase(
+                        HeaderConstants.HEADER_ACCESS_CONTROL_ALLOW_METHODS)) {
+                    MethodReader.addValues(header,
+                            response.getAccessControlAllowMethods());
+                } else if (header.getName().equalsIgnoreCase(
+                        HeaderConstants.HEADER_ACCESS_CONTROL_EXPOSE_HEADERS)) {
+                    StringReader.addValues(header,
+                            response.getAccessControlExposeHeaders());
                 }
             }
         }

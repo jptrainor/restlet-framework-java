@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -44,6 +35,7 @@ import junit.framework.TestCase;
 
 import org.restlet.Application;
 import org.restlet.data.Reference;
+import org.restlet.engine.Engine;
 import org.restlet.ext.jaxrs.ExtendedUriBuilder;
 import org.restlet.test.ext.jaxrs.services.car.CarListResource;
 import org.restlet.test.ext.jaxrs.services.car.CarResource;
@@ -257,6 +249,12 @@ public class ExtendedJaxRsUriBuilderTest extends TestCase {
         this.uriBuilderWithVars.scheme("http");
         this.uriBuilderWithVars.segment("abc", "{var1}", "def", "{var2}");
         this.uriBuilderWithVars.extension("{extension}");
+    }
+
+    @Override
+    protected void tearDown() throws Exception {
+        Engine.clearThreadLocalVariables();
+        super.tearDown();
     }
 
     /**

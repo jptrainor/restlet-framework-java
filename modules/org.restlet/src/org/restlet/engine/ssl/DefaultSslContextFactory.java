@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -154,7 +145,7 @@ import org.restlet.util.Series;
  * <tr>
  * <td>trustStorePath</td>
  * <td>String</td>
- * <td>null</td>
+ * <td>System property "javax.net.ssl.trustStore"</td>
  * <td>Path to trust store</td>
  * </tr>
  * <tr>
@@ -536,7 +527,7 @@ public class DefaultSslContextFactory extends SslContextFactory {
     /**
      * Returns the selected SSL protocols. The selection is the subset of
      * supported protocols whose name starts with the name of of
-     * {@link #getSslProtocol()} name.
+     * {@link #getEnabledProtocols()} name.
      * 
      * @param supportedProtocols
      *            The selected SSL protocols.

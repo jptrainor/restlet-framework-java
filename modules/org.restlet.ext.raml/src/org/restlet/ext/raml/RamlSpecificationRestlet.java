@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -26,7 +17,7 @@
  * 
  * Alternatively, you can obtain a royalty free commercial license with less
  * limitations, transferable or non-transferable, directly at
- * http://www.restlet.com/products/restlet-framework
+ * http://restlet.com/products/restlet-framework
  * 
  * Restlet is a registered trademark of Restlet S.A.S.
  */
@@ -41,12 +32,14 @@ import org.restlet.Response;
 import org.restlet.Restlet;
 import org.restlet.data.MediaType;
 import org.restlet.data.Method;
+import org.restlet.data.Reference;
 import org.restlet.data.Status;
-import org.restlet.ext.apispark.model.Definition;
-import org.restlet.ext.raml.internal.RamlTranslator;
-import org.restlet.ext.raml.internal.reflect.Introspector;
+import org.restlet.ext.apispark.internal.conversion.raml.RamlTranslator;
+import org.restlet.ext.apispark.internal.introspection.application.ApplicationIntrospector;
+import org.restlet.ext.apispark.internal.model.Definition;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
+import org.restlet.routing.Router;
 
 /**
  * Restlet that generates RAML documentation in the format defined by the RAML
@@ -57,9 +50,21 @@ import org.restlet.representation.StringRepresentation;
  * By default it instrospects the chain of Application's routers, filters,
  * restlets.<br>
  * 
+ * <p>
+ * Usage example:
+ * 
+ * <pre>
+ * RamlSpecificationRestlet ramlSpecificationRestlet = new RamlSpecificationRestlet();
+ * ramlSpecificationRestlet.setApiInboundRoot(this);
+ * ramlSpecificationRestlet.setBasePath(&quot;http://myapp.com/api/v1&quot;);
+ * ramlSpecificationRestlet.attach(baseRouter);
+ * </pre>
+ * 
+ * </p>
+ * 
  * @author Cyprien Quilici
- * @see http://raml.org/
- * @see http://raml.org/spec.html
+ * @link http://raml.org/
+ * @link http://raml.org/spec.html
  */
 public class RamlSpecificationRestlet extends Restlet {
 
@@ -75,6 +80,9 @@ public class RamlSpecificationRestlet extends Restlet {
     /** The base path of the API. */
     private String basePath;
 
+    /** The base reference of the API. */
+    private Reference baseRef;
+
     /** The definition of the API. */
     private Definition definition;
 
@@ -83,7 +91,6 @@ public class RamlSpecificationRestlet extends Restlet {
 
     /**
      * Default constructor.<br>
-     * Sets the {@link #ramlVersion} to {@link RamlSpec#version()}.
      */
     public RamlSpecificationRestlet() {
         this(null);
@@ -91,7 +98,6 @@ public class RamlSpecificationRestlet extends Restlet {
 
     /**
      * Constructor.<br>
-     * Sets the {@link #ramlVersion} to {@link RamlSpec#version()}.
      * 
      * @param context
      *            The context.
@@ -99,6 +105,36 @@ public class RamlSpecificationRestlet extends Restlet {
     public RamlSpecificationRestlet(Context context) {
         super(context);
         ramlVersion = "0.8";
+    }
+
+    /**
+     * Defines one route (by default "/raml") for serving the application
+     * specification.
+     * 
+     * @param router
+     *            The router on which defining the new route.
+     * 
+     * @see #attach(org.restlet.routing.Router, String) to attach it with a
+     *      custom path
+     */
+    public void attach(Router router) {
+        attach(router, "/raml");
+    }
+
+    /**
+     * Defines one route (by default "/raml") for serving the application
+     * specification.
+     * 
+     * @param router
+     *            The router on which defining the new route.
+     * @param path
+     *            The root path of the documentation Restlet.
+     * 
+     * @see #attach(org.restlet.routing.Router) to attach it with the default
+     *      path
+     */
+    public void attach(Router router, String path) {
+        router.attach(path, this);
     }
 
     /**
@@ -142,13 +178,10 @@ public class RamlSpecificationRestlet extends Restlet {
     private synchronized Definition getDefinition() {
         if (definition == null) {
             synchronized (RamlSpecificationRestlet.class) {
-                Introspector i = new Introspector(application, false);
-                definition = i.getDefinition();
+                definition = ApplicationIntrospector.getDefinition(application,
+                        baseRef, null, false);
                 if (definition.getVersion() == null) {
                     definition.setVersion("1.0");
-                }
-                if (definition.getEndpoint() == null) {
-                    definition.setEndpoint("http://example.com");
                 }
             }
         }
@@ -179,10 +212,11 @@ public class RamlSpecificationRestlet extends Restlet {
 
     @Override
     public void handle(Request request, Response response) {
-        if (!Method.GET.equals(request.getMethod())) {
+        if (Method.GET.equals(request.getMethod())) {
+            response.setEntity(getRaml());
+        } else {
             response.setStatus(Status.CLIENT_ERROR_METHOD_NOT_ALLOWED);
         }
-        response.setEntity(getRaml());
     }
 
     /**
@@ -223,6 +257,8 @@ public class RamlSpecificationRestlet extends Restlet {
      */
     public void setBasePath(String basePath) {
         this.basePath = basePath;
+        // Process basepath and check validity
+        this.baseRef = basePath != null ? new Reference(basePath) : null;
     }
 
     /**

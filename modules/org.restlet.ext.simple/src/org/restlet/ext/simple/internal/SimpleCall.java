@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -60,7 +51,10 @@ import org.simpleframework.http.Response;
  * 
  * @author Lars Heuer
  * @author Jerome Louvel
+ * @deprecated Will be removed to favor lower-level network extensions such as
+ *             Jetty and Netty, allowing more control at the Restlet API level.
  */
+@Deprecated
 public class SimpleCall extends ServerCall {
 
     /** Simple Request. */
@@ -113,11 +107,6 @@ public class SimpleCall extends ServerCall {
     }
 
     @Override
-    public void flushBuffers() throws IOException {
-        this.response.commit();
-    }
-
-    @Override
     public void complete() {
         try {
             // Commit the response
@@ -125,6 +114,11 @@ public class SimpleCall extends ServerCall {
         } catch (Exception ex) {
             getLogger().log(Level.WARNING, "Unable to commit the response", ex);
         }
+    }
+
+    @Override
+    public void flushBuffers() throws IOException {
+        this.response.commit();
     }
 
     @Override

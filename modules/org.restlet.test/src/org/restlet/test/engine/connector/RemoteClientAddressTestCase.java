@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -32,6 +23,11 @@
  */
 
 package org.restlet.test.engine.connector;
+
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Enumeration;
 
 import org.junit.Assert;
 import org.restlet.Application;
@@ -60,14 +56,30 @@ public class RemoteClientAddressTestCase extends BaseConnectorsTestCase {
     public static class RemoteClientAddressResource extends ServerResource {
 
         public RemoteClientAddressResource() {
-
             getVariants().add(new Variant(MediaType.TEXT_PLAIN));
         }
 
         @Override
         public Representation get(Variant variant) {
-            Assert.assertEquals("127.0.0.1", getRequest().getClientInfo()
-                    .getAddress());
+            boolean localAddress = false;
+            try {
+                Enumeration<NetworkInterface> n = NetworkInterface
+                        .getNetworkInterfaces();
+                for (; n.hasMoreElements();) {
+                    NetworkInterface e = n.nextElement();
+                    Enumeration<InetAddress> a = e.getInetAddresses();
+                    for (; a.hasMoreElements();) {
+                        InetAddress addr = a.nextElement();
+                        if (addr.getHostAddress().equals(
+                                getRequest().getClientInfo().getAddress())) {
+                            localAddress = true;
+                        }
+                    }
+                }
+            } catch (SocketException e1) {
+                // nothing
+            }
+            Assert.assertTrue(localAddress);
             Assert.assertTrue(getRequest().getClientInfo().getPort() > 0);
 
             return new StringRepresentation("OK");

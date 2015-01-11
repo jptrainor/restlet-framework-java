@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -368,6 +359,7 @@ public class Util {
      * @param <A>
      * @return Returns the created list with the given objects in it.
      */
+    @SafeVarargs
     public static <A> Collection<A> createColl(A... objects) {
         return createList(objects);
     }
@@ -381,6 +373,7 @@ public class Util {
      * @return Returns the created list with the given object in it or an empty
      *         list, if the given object is null.
      */
+    @SafeVarargs
     public static <A> List<A> createList(A... objects) {
         final List<A> list = new ArrayList<A>();
         final int l = objects.length;
@@ -417,6 +410,7 @@ public class Util {
      * @param objects
      * @return the created Set
      */
+    @SafeVarargs
     public static <A> Set<A> createSet(A... objects) {
         final Set<A> set = new HashSet<A>();
         final int l = objects.length;

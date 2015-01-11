@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -42,7 +33,6 @@ import java.util.logging.Level;
 import org.restlet.data.Reference;
 import org.restlet.engine.Engine;
 import org.restlet.engine.component.ComponentHelper;
-import org.restlet.engine.component.ComponentXmlParser;
 import org.restlet.engine.component.InternalRouter;
 import org.restlet.representation.Representation;
 import org.restlet.resource.ClientResource;
@@ -127,7 +117,9 @@ public class Component extends Restlet {
      * 
      * @param args
      *            The list of in-line parameters.
+     * @deprecated Use XML support in the Spring extension instead.
      */
+    @Deprecated
     public static void main(String[] args) throws Exception {
         try {
             if ((args == null) || (args.length != 1)) {
@@ -208,7 +200,9 @@ public class Component extends Restlet {
      * 
      * @param xmlConfigRef
      *            The URI reference to the XML configuration file.
+     * @deprecated Use XML support in the Spring extension instead.
      */
+    @Deprecated
     public Component(Reference xmlConfigRef) {
         this();
 
@@ -220,7 +214,8 @@ public class Component extends Restlet {
             xmlConfigRepresentation = cr.get();
 
             if (xmlConfigRepresentation != null) {
-                new ComponentXmlParser(this, xmlConfigRepresentation).parse();
+                new org.restlet.engine.component.ComponentXmlParser(this,
+                        xmlConfigRepresentation).parse();
             } else {
                 getLogger().log(
                         Level.WARNING,
@@ -235,12 +230,15 @@ public class Component extends Restlet {
      * 
      * @param xmlConfigRepresentation
      *            The representation of the XML configuration file.
+     * @deprecated Use XML support in the Spring extension instead.
      */
+    @Deprecated
     public Component(Representation xmlConfigRepresentation) {
         this();
 
         if (xmlConfigRepresentation != null) {
-            new ComponentXmlParser(this, xmlConfigRepresentation).parse();
+            new org.restlet.engine.component.ComponentXmlParser(this,
+                    xmlConfigRepresentation).parse();
         } else {
             getLogger().log(Level.WARNING,
                     "Unable to parse the Component XML configuration.");
@@ -252,7 +250,9 @@ public class Component extends Restlet {
      * 
      * @param xmlConfigurationRef
      *            The URI reference to the XML configuration file.
+     * @deprecated Use XML support in the Spring extension instead.
      */
+    @Deprecated
     public Component(String xmlConfigurationRef) {
         this((xmlConfigurationRef == null) ? null : new Reference(
                 xmlConfigurationRef));
@@ -384,7 +384,9 @@ public class Component extends Restlet {
      * Returns the status service, enabled by default.
      * 
      * @return The status service.
+     * @deprecated Use {@link Application#getStatusService()} instead.
      */
+    @Deprecated
     public StatusService getStatusService() {
         return getServices().get(StatusService.class);
     }
@@ -530,7 +532,10 @@ public class Component extends Restlet {
      * 
      * @param statusService
      *            The status service.
+     * @deprecated Use {@link Application#setStatusService(StatusService)}
+     *             instead.
      */
+    @Deprecated
     public void setStatusService(StatusService statusService) {
         getServices().set(statusService);
     }

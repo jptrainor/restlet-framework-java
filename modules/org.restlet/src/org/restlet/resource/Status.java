@@ -2,21 +2,12 @@
  * Copyright 2005-2014 Restlet
  * 
  * The contents of this file are subject to the terms of one of the following
- * open source licenses: Apache 2.0 or LGPL 3.0 or LGPL 2.1 or CDDL 1.0 or EPL
- * 1.0 (the "Licenses"). You can select the license that you prefer but you may
- * not use this file except in compliance with one of these Licenses.
+ * open source licenses: Apache 2.0 or or EPL 1.0 (the "Licenses"). You can
+ * select the license that you prefer but you may not use this file except in
+ * compliance with one of these Licenses.
  * 
  * You can obtain a copy of the Apache 2.0 license at
  * http://www.opensource.org/licenses/apache-2.0
- * 
- * You can obtain a copy of the LGPL 3.0 license at
- * http://www.opensource.org/licenses/lgpl-3.0
- * 
- * You can obtain a copy of the LGPL 2.1 license at
- * http://www.opensource.org/licenses/lgpl-2.1
- * 
- * You can obtain a copy of the CDDL 1.0 license at
- * http://www.opensource.org/licenses/cddl1
  * 
  * You can obtain a copy of the EPL 1.0 license at
  * http://www.opensource.org/licenses/eclipse-1.0
@@ -50,13 +41,21 @@ import java.lang.annotation.Target;
  * &#064;Get
  * public MyBean represent() throws MyServerError, MyNotFoundError;
  * 
- * &#064;Status(&quot;500&quot;)
+ * &#064;Status(500)
  * public class MyServerError implements Throwable{
  *    ...
  * }
  * 
- * &#064;Status(&quot;404&quot;)
+ * &#064;Status(404, serialize = false)
  * public class MyNotFoundError extends RuntimeException{
+ *    ...
+ * }
+ * 
+ * &#064;Status(value = 400)
+ * public class MyBadParameterError extends RuntimeException{
+ *    public String getParameterName() {
+ *        ...
+ *    };
  *    ...
  * }
  * </pre>
@@ -70,10 +69,19 @@ public @interface Status {
 
     /**
      * Specifies the HTTP status code associated to the annotated
-     * {@link Throwable}.
+     * {@link Throwable}. Default is 500.
      * 
      * @return The result HTTP status code.
      */
-    String value() default "";
+    int value() default 500;
+
+    /**
+     * Indicates if the annotated {@link Throwable} should be serialized in the
+     * HTTP response entity.
+     * 
+     * @return True if {@link Throwable} should be serialized in the HTTP
+     *         response entity.
+     */
+    boolean serialize() default true;
 
 }
