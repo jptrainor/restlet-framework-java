@@ -7,6 +7,20 @@ Changes log
     - API changes
        - Removed lesser used/maintained extensions (JDBC, JiBX, jSSLUtils, 
          ROME, SIP, WebDAV, XDB, XStream).
+       - Enhanced HTML extension (moved StatusInfoConverter). Issue #1005.
+       - Reference scheme reverts to http when using https. Issue #998.
+         Reported by Stephen C. Pope.
     - Bugs
        - Reintroduced registration by default of the internal HTTP server 
          connectors in JEE edition.
+       - FormDataSet not properly serializing text/plain files. Issue #1006.
+         Reported by John Aylward.
+       - Fixed fileupload extension for GAE and JEE editions.
+       - Fixed potential NPE. Issue #1004.
+         Reported by Philippe Perrault.
+       - Fixed malformed JSON in the JsonpRepresentation.
+         Reported by Wagner Correa Ramos.
+    - Misc
+       - Completed the Javadocs for query parameter declarations inside
+         HTTP method annotations such as @Get("json?param=val).
+         
