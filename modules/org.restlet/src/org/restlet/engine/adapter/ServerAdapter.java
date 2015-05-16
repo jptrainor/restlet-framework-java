@@ -104,7 +104,7 @@ public class ServerAdapter extends Adapter {
     /**
      * Commits the changes to a handled uniform call back into the original HTTP
      * call. The default implementation first invokes the "addResponseHeaders"
-     * then asks the "htppCall" to send the response back to the client.
+     * then asks the "httpCall" to send the response back to the client.
      * 
      * @param response
      *            The high-level response.
@@ -196,11 +196,11 @@ public class ServerAdapter extends Adapter {
             // [enddef]
             {
                 getLogger().log(Level.SEVERE,
-                        "An exception occured writing the response entity", t);
+                        "An exception occurred writing the response entity", t);
                 response.getHttpCall().setStatusCode(
                         Status.SERVER_ERROR_INTERNAL.getCode());
                 response.getHttpCall().setReasonPhrase(
-                        "An exception occured writing the response entity");
+                        "An exception occurred writing the response entity");
                 response.setEntity(null);
 
                 try {

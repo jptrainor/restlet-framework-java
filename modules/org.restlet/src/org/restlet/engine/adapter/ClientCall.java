@@ -32,6 +32,7 @@ import java.util.logging.Level;
 import org.restlet.Context;
 import org.restlet.Request;
 import org.restlet.Response;
+import org.restlet.data.Encoding;
 import org.restlet.data.Header;
 import org.restlet.data.Method;
 import org.restlet.data.Status;
@@ -154,7 +155,8 @@ public abstract class ClientCall extends Call {
         String transferEncoding = responseHeaders.getFirstValue(
                 HeaderConstants.HEADER_TRANSFER_ENCODING, true);
         if ((transferEncoding != null)
-                && !"identity".equalsIgnoreCase(transferEncoding)) {
+                && !Encoding.IDENTITY.getName().equalsIgnoreCase(
+                        transferEncoding)) {
             size = Representation.UNKNOWN_SIZE;
         } else {
             size = getContentLength();
@@ -313,7 +315,7 @@ public abstract class ClientCall extends Call {
             getHelper()
                     .getLogger()
                     .log(Level.FINE,
-                            "An error occured during the communication with the remote HTTP server.",
+                            "An error occurred during the communication with the remote HTTP server.",
                             ioe);
             result = new Status(Status.CONNECTOR_ERROR_COMMUNICATION, ioe);
         } finally {

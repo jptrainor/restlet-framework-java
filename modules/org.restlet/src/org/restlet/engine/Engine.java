@@ -525,7 +525,7 @@ public class Engine {
             } catch (IOException e) {
                 Context.getCurrentLogger()
                         .log(Level.WARNING,
-                                "An error occured while discovering the engine helpers.",
+                                "An error occurred while discovering the engine helpers.",
                                 e);
             }
         }
@@ -928,8 +928,6 @@ public class Engine {
     public void registerDefaultProtocols() {
         getRegisteredProtocols().add(
                 new org.restlet.engine.connector.HttpProtocolHelper());
-        getRegisteredProtocols().add(
-                new org.restlet.engine.connector.WebDavProtocolHelper());
     }
 
     // [ifndef gwt] method

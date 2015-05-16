@@ -71,7 +71,7 @@ public class HeaderUtils {
      */
     private static final Set<String> STANDARD_HEADERS = Collections
             .unmodifiableSet(new CaseInsensitiveHashSet(Arrays.asList(
-                    HeaderConstants.HEADER_ACCESS_CONTROL_ALLOW_CREDENTIAL,
+                    HeaderConstants.HEADER_ACCESS_CONTROL_ALLOW_CREDENTIALS,
                     HeaderConstants.HEADER_ACCESS_CONTROL_ALLOW_HEADERS,
                     HeaderConstants.HEADER_ACCESS_CONTROL_ALLOW_METHODS,
                     HeaderConstants.HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
@@ -600,9 +600,9 @@ public class HeaderUtils {
 
         // CORS headers
 
-        if (response.getAccessControlAllowCredential() != null) {
-            addHeader(HeaderConstants.HEADER_ACCESS_CONTROL_ALLOW_CREDENTIAL,
-                    response.getAccessControlAllowCredential().toString(),
+        if (response.getAccessControlAllowCredentials() != null) {
+            addHeader(HeaderConstants.HEADER_ACCESS_CONTROL_ALLOW_CREDENTIALS,
+                    response.getAccessControlAllowCredentials().toString(),
                     headers);
         }
 
@@ -653,28 +653,41 @@ public class HeaderUtils {
     }
 
     /**
-     * Copies extension headers into a response.
+     * Copies extension headers into a request.
      * 
      * @param headers
      *            The headers to copy.
-     * @param response
-     *            The response to update.
+     * @param request
+     *            The request to update.
      */
-    @SuppressWarnings("unchecked")
-    public static void copyExtensionHeaders(Series<Header> headers,
-            Response response) {
-        if (headers != null) {
-            Series<Header> extensionHeaders = (Series<Header>) response
-                    .getAttributes().get(HeaderConstants.ATTRIBUTE_HEADERS);
-            if (extensionHeaders == null) {
-                // [ifndef gwt] instruction
-                extensionHeaders = new Series<Header>(Header.class);
-                // [ifdef gwt] instruction uncomment
-                // extensionHeaders = new
-                // org.restlet.engine.util.HeaderSeries();
-                response.getAttributes().put(HeaderConstants.ATTRIBUTE_HEADERS,
-                        extensionHeaders);
+    public static void keepExtensionHeadersOnly(Message message) {
+        Series<Header> headers = message.getHeaders();
+        // [ifndef gwt] instruction
+        Series<Header> extensionHeaders = new Series<Header>(Header.class);
+        // [ifdef gwt] instruction uncomment
+        // Series<Header> extensionHeaders = new
+        // org.restlet.engine.util.HeaderSeries();
+        for (Header header : headers) {
+            if (!STANDARD_HEADERS.contains(header.getName())) {
+                extensionHeaders.add(header);
             }
+        }
+        message.getAttributes().put(HeaderConstants.ATTRIBUTE_HEADERS,
+                extensionHeaders);
+    }
+
+    /**
+     * Copies extension headers into a request or a response.
+     * 
+     * @param headers
+     *            The headers to copy.
+     * @param request
+     *            The request to update.
+     */
+    public static void copyExtensionHeaders(Series<Header> headers,
+            Message message) {
+        if (headers != null) {
+            Series<Header> extensionHeaders = message.getHeaders();
             for (Header header : headers) {
                 if (!STANDARD_HEADERS.contains(header.getName())) {
                     extensionHeaders.add(header);
@@ -803,9 +816,11 @@ public class HeaderUtils {
                     TokenReader tr = new TokenReader(header.getValue());
                     response.getServerInfo().setAcceptingRanges(
                             tr.readValues().contains("bytes"));
-                } else if (header.getName().equalsIgnoreCase(
-                        HeaderConstants.HEADER_ACCESS_CONTROL_ALLOW_CREDENTIAL)) {
-                    response.setAccessControlAllowCredential(Boolean
+                } else if (header
+                        .getName()
+                        .equalsIgnoreCase(
+                                HeaderConstants.HEADER_ACCESS_CONTROL_ALLOW_CREDENTIALS)) {
+                    response.setAccessControlAllowCredentials(Boolean
                             .parseBoolean(header.getValue()));
                     StringReader.addValues(header,
                             response.getAccessControlAllowHeaders());

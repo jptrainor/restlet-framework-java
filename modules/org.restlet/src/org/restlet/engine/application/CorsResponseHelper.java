@@ -170,7 +170,7 @@ public class CorsResponseHelper {
 
         // Header 'Access-Control-Allow-Credentials'
         if (allowedCredentials) {
-            response.setAccessControlAllowCredential(true);
+            response.setAccessControlAllowCredentials(true);
         }
 
         // Header 'Access-Control-Allow-Origin'
@@ -262,6 +262,17 @@ public class CorsResponseHelper {
      */
     public boolean isAllowedCredentials() {
         return allowedCredentials;
+    }
+
+    /**
+     * Returns true if the request is a CORS request.
+     *
+     * @param request
+     *      The current request.
+     * @return true if the request is a CORS request.
+     */
+    public boolean isCorsRequest(Request request) {
+        return request.getHeaders().getFirstValue("Origin", true) != null;
     }
 
     /**
