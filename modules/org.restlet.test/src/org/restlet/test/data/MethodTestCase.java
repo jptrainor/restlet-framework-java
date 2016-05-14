@@ -22,45 +22,32 @@
  * Restlet is a registered trademark of Restlet S.A.S.
  */
 
-package org.restlet.test.ext.jaxrs.services.echo;
+package org.restlet.test.data;
 
-import java.awt.Point;
+import org.restlet.data.Method;
 
-public class EchoResourceImpl implements EchoResource {
+import junit.framework.TestCase;
 
-    @Override
-    public Point echoPointHeaderParam(Point point) {
-        return point;
-    }
+/**
+ * Test {@link org.restlet.data.Method}.
+ * <p>
+ * Note: this test purposefully does *not* extends RestletTestCase. The
+ * regression previously present in Restlet
+ * (desribed in https://github.com/restlet/restlet-framework-java/issues/1130) depends on
+ * class initialization order and vanishes when the Restlet/Engine class is
+ * initialized before the class Method.
+ * 
+ * @author Andreas Wundsam
+ */
+public class MethodTestCase extends TestCase {
 
-    @Override
-    public String echo(String input) {
-        return input;
-    }
-
-    @Override
-    public Point echoPointQueryParam(Point point) {
-        return point;
-    }
-
-    @Override
-    public Point echoPointPathParam(Point point) {
-        return point;
-    }
-
-    @Override
-    public String echoStringRegexPathParam(String input) {
-        return input;
-    }
-
-    @Override
-    public Point echoPointCookieParam(Point point) {
-        return point;
-    }
-
-    @Override
-    public String echoStringFormParam(String value) {
-        return value;
-    }
+	/**
+	 * validate that Method caching works, i.e., the value returned by
+	 * Method.valueOf("GET") is the cached constant Method.GET
+	 */
+	public void testCaching() {
+		assertTrue("Method.valueOf('GET') should return cached constant Method.GET ",
+				Method.GET == Method.valueOf("GET"));
+	}
 
 }
